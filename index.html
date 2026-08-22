@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management System</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #6B8E23;
+            --primary-dark: #556B2F;
+            --accent: #00CED1;
+            --bg: #f5f5f5;
+            --white: #ffffff;
+            --text: #333;
+            --text-light: #666;
+            --border: #ddd;
+            --danger: #dc3545;
+            --success: #28a745;
+            --sidebar-width: 320px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .header { background: var(--white); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: fixed; top: 0; left: 0; right: 0; z-index: 100; height: 56px; }
+        .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 600; color: var(--primary); }
+        .logo svg { width: 32px; height: 32px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .stats { background: var(--primary); color: white; padding: 6px 14px; border-radius: 16px; font-size: 13px; }
+        .btn { padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: var(--primary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; }
+        .main-layout { display: flex; margin-top: 56px; min-height: calc(100vh - 56px); }
+        .sidebar { width: var(--sidebar-width); background: var(--white); border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+        .sidebar-header { padding: 15px; border-bottom: 1px solid var(--border); font-weight: 600; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .accordion-item { border-bottom: 1px solid var(--border); }
+        .accordion-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; background: #fafafa; }
+        .accordion-header:hover { background: #f0f0f0; }
+        .accordion-icon { width: 20px; height: 20px; margin-right: 8px; transition: transform 0.2s; }
+        .accordion-item.open .accordion-icon { transform: rotate(90deg); }
+        .accordion-title { flex: 1; font-size: 14px; }
+        .accordion-actions { display: flex; gap: 3px; }
+        .accordion-actions button { background: none; border: none; cursor: pointer; padding: 3px; opacity: 0.5; font-size: 11px; }
+        .accordion-actions button:hover { opacity: 1; }
+        .accordion-content { display: none; padding-left: 15px; }
+        .accordion-item.open .accordion-content { display: block; }
+        .project-item { padding: 8px 15px 8px 35px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+        .project-item:hover { background: #f5f5f5; }
+        .project-item.selected { background: #e8f5e9; color: var(--primary); }
+        .content { flex: 1; padding: 20px; overflow-x: auto; }
+        .search-section { background: var(--white); padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 12px; }
+        .search-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+        .search-input:focus { outline: none; border-color: var(--primary); }
+        .action-bar { display: flex; justify-content: space-between; align-items: center; }
+        .action-left, .action-right { display: flex; gap: 10px; align-items: center; }
+        .select-info { color: var(--text-light); font-size: 13px; }
+        .table-container { background: var(--white); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: #f8f9fa; font-weight: 600; font-size: 12px; color: var(--text-light); white-space: nowrap; }
+        td { font-size: 13px; }
+        tr:hover { background: #f8f9fa; }
+        .checkbox-col { width: 35px; text-align: center; }
+        input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .price-col { text-align: right; white-space: nowrap; }
+        .action-col { width: 100px; }
+        .pagination { display: flex; justify-content: center; align-items: center; padding: 12px; gap: 5px; }
+        .page-btn { min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--white); border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .page-btn:hover { background: #f0f0f0; }
+        .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-info { padding: 0 12px; color: var(--text-light); font-size: 13px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--white); border-radius: 10px; width: 95%; max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 16px; font-weight: 600; }
+        .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-light); }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 12px; color: var(--text-light); }
+        .form-input { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 5px; font-size: 13px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-section { background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+        .form-section-title { font-weight: 600; margin-bottom: 8px; color: var(--primary); font-size: 13px; }
+        .alert { padding: 12px; border-radius: 6px; margin-bottom: 12px; font-size: 13px; }
+        .alert-warning { background: #fff3cd; border: 1px solid #ffc107; color: #856404; }
+        .alert-success { background: #d4edda; border: 1px solid #28a745; color: #155724; }
+        .import-box { background: var(--white); padding: 30px; border-radius: 8px; border: 2px dashed var(--border); text-align: center; cursor: pointer; }
+        .import-box:hover { border-color: var(--primary); }
+        .import-box.dragover { border-color: var(--primary); background: #f0f8f0; }
+        .project-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 150px; overflow-y: auto; padding: 8px; background: #f8f9fa; border-radius: 6px; }
+        .project-item-check { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-light); }
+        .lang-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-light); cursor: pointer; }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 18px; background: #333; color: white; border-radius: 6px; z-index: 2000; display: none; }
+        .toast.show { display: block; }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .sort-section { margin-top: 15px; }
+        .sort-section-title { font-weight: 600; margin-bottom: 10px; font-size: 14px; color: var(--primary); cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .sortable-list { list-style: none; padding: 0; margin: 0; }
+        .sortable-item { display: flex; align-items: center; padding: 8px 12px; background: #f8f9fa; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 5px; cursor: grab; }
+        .sortable-item .handle { margin-right: 10px; color: #999; }
+        .sortable-item .name { flex: 1; font-size: 13px; }
+        .sortable-item.dragging { opacity: 0.5; }
+        .spec-section { margin-bottom: 12px; padding: 10px; border-radius: 6px; }
+        .spec-section-1 { background: #e8f4e8; border-left: 4px solid var(--primary); }
+        .spec-section-2 { background: #fff3e0; border-left: 4px solid #ff9800; }
+        .spec-subsection { background: #fff; padding: 8px; border-radius: 4px; margin-bottom: 8px; }
+        .spec-label { font-weight: 500; margin-bottom: 6px; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" stroke="#6B8E23" stroke-width="2"/><path d="M12 25 L20 15 L28 25" stroke="#6B8E23" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="28" r="3" fill="#00CED1"/></svg>
+            <span>Product Manager</span>
+        </div>
+        <div class="header-right">
+            <span class="stats" id="statsDisplay">0 Products</span>
+            <span class="lang-toggle" onclick="toggleLanguage()"><span id="langText">中文/EN</span></span>
+            <button class="btn btn-outline" onclick="showImportModal()">Import</button>
+            <button class="btn btn-outline" onclick="exportJSON()">Export JSON</button>
+            <button class="btn btn-outline" onclick="exportExcel()">Export Excel</button>
+            <button class="btn btn-outline" onclick="saveToLocal()">Save Local</button>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <span data-zh="区域层级" data-en="Area Hierarchy">区域层级</span>
+                <button class="btn btn-primary btn-sm" onclick="showAddAreaModal()">+</button>
+            </div>
+            <div id="areaHierarchy"></div>
+            <div class="sort-section" style="padding:15px; border-top:2px solid #ddd;">
+                <div class="sort-section-title" onclick="toggleSortSection('areas')"><span>▶</span> <span data-zh="编辑区域排序" data-en="Sort Areas">编辑区域排序</span></div>
+                <div id="sortAreasSection" style="display:none;"></div>
+                <div class="sort-section-title" onclick="toggleSortSection('projects')" style="margin-top:15px;"><span>▶</span> <span data-zh="编辑项目排序" data-en="Sort Projects">编辑项目排序</span></div>
+                <div id="sortProjectsSection" style="display:none;">
+                    <select class="form-input" id="sortProjectArea" onchange="renderProjectSortList()" style="margin-bottom:10px;"><option value="">-- Select Area --</option></select>
+                    <div id="sortProjectsList"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content">
+            <div class="search-section">
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search exact product name..." onkeyup="handleSearch(event)">
+                    <button class="btn btn-primary" onclick="performSearch()">Search</button>
+                </div>
+                <div class="action-bar">
+                    <div class="action-left">
+                        <label class="select-info"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"> <span data-zh="全选" data-en="Select All">Select All</span></label>
+                        <span class="select-info" id="selectedCount">0 selected</span>
+                    </div>
+                    <div class="action-right">
+                        <button class="btn btn-primary" onclick="showAddModal()">+ Add</button>
+                        <button class="btn btn-outline" onclick="batchEdit()" id="batchEditBtn" disabled data-zh="编辑选中" data-en="Edit Selected">Edit Selected</button>
+                        <button class="btn btn-danger" onclick="batchDelete()" id="batchDeleteBtn" disabled>Delete</button>
+                    </div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="checkbox-col"><input type="checkbox" id="tableSelectAll" onchange="toggleTableSelectAll()"></th>
+                            <th data-zh="产品名称" data-en="Product Name">Product Name</th>
+                            <th data-zh="区域" data-en="Area">Area</th>
+                            <th data-zh="项目" data-en="Project">Project</th>
+                            <th class="price-col" data-zh="单价" data-en="Unit Price">Unit Price</th>
+                            <th class="price-col" data-zh="高端价" data-en="High-End">High-End</th>
+                            <th class="price-col" data-zh="代理价" data-en="Dealer">Dealer</th>
+                            <th class="price-col" data-zh="成本" data-en="Cost">Cost</th>
+                            <th class="price-col" data-zh="设计费" data-en="Design">Design</th>
+                            <th class="price-col" data-zh="安装费" data-en="Install">Install</th>
+                            <th class="action-col" data-zh="操作" data-en="Action">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTable"></tbody>
+                </table>
+                <div class="empty-state" id="emptyState" style="display:none;"><p data-zh="暂无产品" data-en="No products found">No products found</p></div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header"><h3 class="modal-title" id="editModalTitle">Edit Product</h3><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editProductId">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label" data-zh="区域" data-en="Area">Area</label><input type="text" class="form-input" id="editAreaDisplay" readonly style="background:#f0f0f0;"></div>
+                        <div class="form-group"><label class="form-label" data-zh="项目" data-en="Project">Project</label><input type="text" class="form-input" id="editProjectDisplay" readonly style="background:#f0f0f0;"></div>
+                    </div>
+                    <div class="alert alert-warning" id="batchEditWarning" style="display:none;"><strong data-zh="批量编辑" data-en="Batch Edit">Batch Edit</strong>: <span id="batchEditCount">0</span></div>
+                    <div class="alert alert-danger" id="nameMismatchAlert" style="display:none;"><strong data-zh="产品名称不一致！" data-en="Names do not match!">Names do not match!</strong><p id="mismatchNames"></p></div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label" data-zh="产品名称 (EN)" data-en="Product Name (EN)">Product Name (EN)</label><input type="text" class="form-input" id="editItemB" required></div>
+                        <div class="form-group"><label class="form-label" data-zh="产品名称 (CN)" data-en="Product Name (CN)">Product Name (CN)</label><input type="text" class="form-input" id="editItemBZh"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label" data-zh="描述 (EN)" data-en="Description (EN)">Description (EN)</label><input type="text" class="form-input" id="editDescription"></div>
+                        <div class="form-group"><label class="form-label" data-zh="描述 (CN)" data-en="Description (CN)">Description (CN)</label><input type="text" class="form-input" id="editDescriptionZh"></div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-section-title" data-zh="备注" data-en="Notes">Notes</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="备注 A (EN)" data-en="Note A (EN)">Note A (EN)</label><input type="text" class="form-input" id="editNoteA"></div>
+                            <div class="form-group"><label class="form-label" data-zh="备注 A (CN)" data-en="Note A (CN)">Note A (CN)</label><input type="text" class="form-input" id="editNoteACn"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="备注 B (EN)" data-en="Note B (EN)">Note B (EN)</label><input type="text" class="form-input" id="editNoteB"></div>
+                            <div class="form-group"><label class="form-label" data-zh="备注 B (CN)" data-en="Note B (CN)">Note B (CN)</label><input type="text" class="form-input" id="editNoteBCn"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-section-title" data-zh="价格" data-en="Prices">Prices</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="单价 (RM)" data-en="Unit Price (RM)">Unit Price (RM)</label><input type="number" step="0.01" class="form-input" id="editUnitPrice"></div>
+                            <div class="form-group"><label class="form-label" data-zh="高端价 (RM)" data-en="High-End (RM)">High-End (RM)</label><input type="number" step="0.01" class="form-input" id="editHighEndPrice"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="代理价 (RM)" data-en="Dealer (RM)">Dealer (RM)</label><input type="number" step="0.01" class="form-input" id="editDealerPrice"></div>
+                            <div class="form-group"><label class="form-label" data-zh="成本 (RM)" data-en="Cost (RM)">Cost (RM)</label><input type="number" step="0.01" class="form-input" id="editCostPrice"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="设计费 (RM)" data-en="Design Fee (RM)">Design Fee (RM)</label><input type="number" step="0.01" class="form-input" id="editDesignFee"></div>
+                            <div class="form-group"><label class="form-label" data-zh="安装费 (RM)" data-en="Installation Fee (RM)">Installation Fee (RM)</label><input type="number" step="0.01" class="form-input" id="editInstallFee"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-section-title" data-zh="调整" data-en="Adjustment">Adjustment</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="成本1 (RM)" data-en="Cost 1 (RM)">Cost 1 (RM)</label><input type="number" step="0.01" class="form-input" id="editCostPrice1" placeholder="0.00" oninput="calculateCostPrice()"></div>
+                            <div class="form-group"><label class="form-label" data-zh="百分比 %" data-en="Percentage %">Percentage %</label><input type="number" step="0.01" class="form-input" id="editAdjustPercent" placeholder="0" oninput="calculateCostPrice()"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;"><label class="form-label" data-zh="成本 (试算)" data-en="Cost (Preview)">Cost (Preview)</label><input type="number" step="0.01" class="form-input" id="editCostPricePreview" readonly style="background:#e8f5e9;"></div>
+                        </div>
+                        <div class="adjust-formula" style="font-size:12px; color:#666; margin-top:5px;" data-zh="试算：成本1 × (1 + 百分比/100) = 成本" data-en="Formula: Cost1 × (1 + Percent/100) = Cost">Formula: Cost1 × (1 + Percent/100) = Cost</div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-section-title" data-zh="普通计算" data-en="Basic Calculation">Basic Calculation</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label" data-zh="计算方式" data-en="Calculation Type">Calculation Type</label>
+                                <select class="form-input" id="editAlgorithm" onchange="updateAlgorithmFields()">
+                                    <option value="Per Unit">UNIT</option>
+                                    <option value="Per SQM">SQM</option>
+                                    <option value="Per LM">LM</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label" data-zh="尺寸" data-en="Dimension">Dimension</label><input type="text" class="form-input" id="editInputDimension" placeholder="W×H×D"></div>
+                        </div>
+                        <div class="form-group"><label class="form-label" data-zh="计算说明" data-en="Formula">Formula</label><input type="text" class="form-input" id="editAlgorithmNotes" readonly placeholder="UNIT * Unit price = Total price"></div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-section-title" data-zh="特殊计算 (两部分)" data-en="Special Calculation (Two Sections)">Special Calculation (Two Sections)</div>
+                        
+                        <div class="spec-section spec-section-1">
+                            <div class="form-section-title" style="font-size:13px; color:var(--primary);" data-zh="Section 1: ≤ 限制 → 返回基础价格" data-en="Section 1: ≤ Limit → Return Base Price">Section 1: ≤ Limit → Return Base Price</div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" data-zh="宽度 (例如 <1200)" data-en="Width (e.g. <1200)">Width (e.g. <1200)</label><input type="text" class="form-input" id="editSec1Width" placeholder="e.g. <1200"></div>
+                                <div class="form-group"><label class="form-label" data-zh="高度 (例如 <900)" data-en="Height (e.g. <900)">Height (e.g. <900)</label><input type="text" class="form-input" id="editSec1Height" placeholder="e.g. <900"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label" data-zh="深度 (例如 <600)" data-en="Depth (e.g. <600)">Depth (e.g. <600)</label><input type="text" class="form-input" id="editSec1Depth" placeholder="e.g. <600"></div>
+                                <div class="form-group">
+                                    <label class="form-label" data-zh="Section 1 特殊模式" data-en="Section 1 Special Mode">Section 1 Special Mode</label>
+                                    <select class="form-input" id="editSec1Mode">
+                                        <option value="return_base">Return Base Price</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="spec-section spec-section-2">
+                            <div class="form-section-title" style="font-size:13px; color:#e65100;" data-zh="Section 2: > 限制 → 特殊计算" data-en="Section 2: > Limit → Special Calculation">Section 2: > Limit → Special Calculation</div>
+                            
+                            <div class="spec-subsection">
+                                <div class="spec-label" data-zh="W 宽度" data-en="W Width">W Width</div>
+                                <div class="form-row">
+                                    <div class="form-group"><label class="form-label" data-zh="宽度限制" data-en="Width Restrictions">Width Restrictions</label><input type="text" class="form-input" id="editWSpecRes" placeholder="e.g. 1200"></div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-zh="W 特殊模式" data-en="W Special Mode">W Special Mode</label>
+                                        <select class="form-input" id="editWSpecMode">
+                                            <option value="none">None</option>
+                                            <option value="return_base">Return Base Price</option>
+                                            <option value="zero">Exceed = Zero</option>
+                                            <option value="plus_150_100">Exceed +150/100mm</option>
+                                            <option value="plus_60_50">Exceed +60/50mm</option>
+                                            <option value="plus_20_10">Exceed +20/10mm</option>
+                                            <option value="by_sqm">By SQM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="spec-subsection">
+                                <div class="spec-label" data-zh="H 高度" data-en="H Height">H Height</div>
+                                <div class="form-row">
+                                    <div class="form-group"><label class="form-label" data-zh="高度限制" data-en="Height Restrictions">Height Restrictions</label><input type="text" class="form-input" id="editHSpecRes" placeholder="e.g. 900"></div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-zh="H 特殊模式" data-en="H Special Mode">H Special Mode</label>
+                                        <select class="form-input" id="editHSpecMode">
+                                            <option value="none">None</option>
+                                            <option value="return_base">Return Base Price</option>
+                                            <option value="zero">Exceed = Zero</option>
+                                            <option value="plus_150_100">Exceed +150/100mm</option>
+                                            <option value="plus_60_50">Exceed +60/50mm</option>
+                                            <option value="plus_20_10">Exceed +20/10mm</option>
+                                            <option value="by_sqm">By SQM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="spec-subsection">
+                                <div class="spec-label" data-zh="D 深度" data-en="D Depth">D Depth</div>
+                                <div class="form-row">
+                                    <div class="form-group"><label class="form-label" data-zh="深度限制" data-en="Depth Restrictions">Depth Restrictions</label><input type="text" class="form-input" id="editDSpecRes" placeholder="e.g. 600"></div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-zh="D 特殊模式" data-en="D Special Mode">D Special Mode</label>
+                                        <select class="form-input" id="editDSpecMode">
+                                            <option value="none">None</option>
+                                            <option value="return_base">Return Base Price</option>
+                                            <option value="zero">Exceed = Zero</option>
+                                            <option value="plus_150_100">Exceed +150/100mm</option>
+                                            <option value="plus_60_50">Exceed +60/50mm</option>
+                                            <option value="plus_20_10">Exceed +20/10mm</option>
+                                            <option value="by_sqm">By SQM</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section" id="projectSection" style="display:none;">
+                        <div class="form-section-title" data-zh="项目类别 (勾选将创建新产品)" data-en="Projects (check to create new)">Projects (check to create new)</div>
+                        <div class="project-list" id="projectCheckboxes"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('editModal')" data-zh="取消" data-en="Cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="saveProduct()" data-zh="保存" data-en="Save">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal">
+            <div class="modal-header"><h3 class="modal-title" data-zh="导入产品" data-en="Import Products">Import Products</h3><button class="modal-close" onclick="closeModal('importModal')">&times;</button></div>
+            <div class="modal-body">
+                <div class="import-box" id="dropZone" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6B8E23" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <p style="margin: 12px 0;" data-zh="拖放文件或点击选择" data-en="Drop file or click to select">拖放文件或点击选择</p>
+                    <input type="file" id="fileInput" accept=".json,.xlsx,.xls,.csv" style="display:none" onchange="handleFileSelect(event)">
+                    <button class="btn btn-outline" onclick="document.getElementById('fileInput').click()" data-zh="选择文件" data-en="Select File">Select File</button>
+                    <p style="font-size:11px; color:#666; margin-top:8px;">JSON, Excel (.xlsx/.xls), CSV</p>
+                </div>
+                <div id="importPreview" style="display:none; margin-top:15px;">
+                    <div class="alert alert-success"><p id="previewContent"></p></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('importModal')" data-zh="取消" data-en="Cancel">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmImport()" id="importConfirmBtn" disabled data-zh="确认导入" data-en="Confirm Import">Confirm Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Area Modal -->
+    <div class="modal-overlay" id="addAreaModal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title" data-zh="添加区域" data-en="Add Area">Add Area</h3><button class="modal-close" onclick="closeModal('addAreaModal')">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label" data-zh="区域名称 (EN)" data-en="Area Name (EN)">Area Name (EN)</label><input type="text" class="form-input" id="newAreaName"></div>
+                <div class="form-group"><label class="form-label" data-zh="区域名称 (CN)" data-en="Area Name (CN)">Area Name (CN)</label><input type="text" class="form-input" id="newAreaNameZh"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('addAreaModal')" data-zh="取消" data-en="Cancel">Cancel</button><button class="btn btn-primary" onclick="saveArea()" data-zh="保存" data-en="Save">Save</button></div>
+        </div>
+    </div>
+
+    <!-- Add Project Modal -->
+    <div class="modal-overlay" id="addProjectModal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title" data-zh="添加项目" data-en="Add Project">Add Project</h3><button class="modal-close" onclick="closeModal('addProjectModal')">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label" data-zh="所属区域" data-en="Area">Area</label><select class="form-input" id="projectArea"></select></div>
+                <div class="form-group"><label class="form-label" data-zh="项目名称 (EN)" data-en="Project Name (EN)">Project Name (EN)</label><input type="text" class="form-input" id="newProjectName"></div>
+                <div class="form-group"><label class="form-label" data-zh="项目名称 (CN)" data-en="Project Name (CN)">Project Name (CN)</label><input type="text" class="form-input" id="newProjectNameZh"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('addProjectModal')" data-zh="取消" data-en="Cancel">Cancel</button><button class="btn btn-primary" onclick="saveProject()" data-zh="保存" data-en="Save">Save</button></div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="max-width:450px;">
+            <div class="modal-header"><h3 class="modal-title" data-zh="确认删除" data-en="Confirm Delete">Confirm Delete</h3><button class="modal-close" onclick="closeModal('deleteModal')">&times;</button></div>
+            <div class="modal-body">
+                <p data-zh="确定要删除以下" data-en="Delete the following">Delete the following</p>
+                <p><strong id="deleteCount">0</strong> <span data-zh="个产品？" data-en="products?">products?</span></p>
+                <div id="deleteList" style="max-height:150px; overflow-y:auto; margin-top:10px;"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('deleteModal')" data-zh="取消" data-en="Cancel">Cancel</button><button class="btn btn-danger" onclick="confirmDelete()" data-zh="确认删除" data-en="Confirm">Confirm</button></div>
+        </div>
+    </div>
+
+    <!-- Adjust Modal (Copy/Move) -->
+    <div class="modal-overlay" id="adjustModal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header"><h3 class="modal-title" data-zh="调整产品" data-en="Adjust Product">Adjust Product</h3><button class="modal-close" onclick="closeModal('adjustModal')">&times;</button></div>
+            <div class="modal-body">
+                <input type="hidden" id="adjustProductId">
+                <div class="form-group">
+                    <label class="form-label" data-zh="选择区域" data-en="Select Area">Select Area</label>
+                    <select class="form-input" id="adjustAreaSelect" onchange="updateAdjustProjectSelect()">
+                        <option value="">-- Select Area --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-zh="选择项目" data-en="Select Project">Select Project</label>
+                    <select class="form-input" id="adjustProjectSelect">
+                        <option value="">-- Select Project --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('adjustModal')" data-zh="取消" data-en="Cancel">Cancel</button>
+                <button class="btn btn-outline" onclick="copyProduct()" data-zh="复制" data-en="Copy">Copy</button>
+                <button class="btn btn-primary" onclick="moveProduct()" data-zh="移动" data-en="Move">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let allProducts = [];
+        let filteredProducts = [];
+        let selectedProducts = new Set();
+        let currentPage = 1;
+        const pageSize = 50;
+        let currentLang = 'en';
+        let currentArea = null;
+        let areaOrder = [];
+        let projectOrders = {};
+
+        async function init() {
+            await loadData();
+            loadOrderSettings();
+            renderAreaHierarchy();
+            renderTable();
+            updateStats();
+        }
+
+        async function loadData() {
+            try {
+                // Try to load from local storage first (complete data)
+                const localData = localStorage.getItem('pm_products');
+                if (localData) {
+                    const parsed = JSON.parse(localData);
+                    allProducts = parsed.products || [];
+                    filteredProducts = [...allProducts];
+                    if (parsed.meta) {
+                        areaOrder = parsed.areas || [];
+                    }
+                    return;
+                }
+                
+                // Fall back to products.json
+                const response = await fetch('products.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    allProducts = data.products || data || [];
+                    filteredProducts = [...allProducts];
+                }
+            } catch (e) { console.error('Failed to load:', e); }
+        }
+
+        function saveData() {
+            localStorage.setItem('pm_products', JSON.stringify({
+                products: allProducts,
+                areas: areaOrder,
+                meta: { total: allProducts.length, saved: new Date().toISOString(), version: '2.0' }
+            }));
+        }
+
+        function loadOrderSettings() {
+            const settings = localStorage.getItem('orderSettings');
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                areaOrder = parsed.areaOrder || [];
+                projectOrders = parsed.projectOrders || {};
+            }
+        }
+
+        function saveOrderSettings() {
+            localStorage.setItem('orderSettings', JSON.stringify({areaOrder, projectOrders}));
+        }
+
+        function updateStats() {
+            document.getElementById('statsDisplay').textContent = allProducts.length + ' Products';
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'zh' : 'en';
+            document.getElementById('langText').textContent = currentLang === 'en' ? '中文/EN' : 'EN/中文';
+            document.querySelectorAll('[data-zh]').forEach(el => el.textContent = el.getAttribute('data-' + currentLang));
+            renderAreaHierarchy();
+            renderTable();
+        }
+
+        function getAreaHierarchy() {
+            const hierarchy = {};
+            // First add all areas from allProducts
+            allProducts.forEach(p => {
+                const area = p.area || 'OTHER';
+                const areaZh = p.areaZh || area;
+                const project = p.itemA || 'Other';
+                const projectZh = p.itemAZh || project;
+                if (!hierarchy[area]) hierarchy[area] = { name: area, nameZh: areaZh, projects: {} };
+                if (!hierarchy[area].projects[project]) hierarchy[area].projects[project] = { name: project, nameZh: projectZh, products: [] };
+                hierarchy[area].projects[project].products.push(p);
+            });
+            // Then add areas from areaOrder that have no products
+            areaOrder.forEach(area => {
+                if (!hierarchy[area]) hierarchy[area] = { name: area, nameZh: area, projects: {} };
+            });
+            // Add projects from projectOrders that have no products
+            Object.keys(projectOrders).forEach(area => {
+                if (!hierarchy[area]) hierarchy[area] = { name: area, nameZh: area, projects: {} };
+                projectOrders[area].forEach(project => {
+                    if (!hierarchy[area].projects[project]) hierarchy[area].projects[project] = { name: project, nameZh: project, products: [] };
+                });
+            });
+            return hierarchy;
+        }
+
+        function renderAreaHierarchy() {
+            const hierarchy = getAreaHierarchy();
+            const container = document.getElementById('areaHierarchy');
+            let areas = Object.keys(hierarchy);
+            if (areaOrder.length > 0) {
+                areas = areas.sort((a, b) => {
+                    const aIdx = areaOrder.indexOf(a);
+                    const bIdx = areaOrder.indexOf(b);
+                    if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+                    if (aIdx === -1) return 1;
+                    if (bIdx === -1) return -1;
+                    return aIdx - bIdx;
+                });
+            }
+            let html = '';
+            areas.forEach(area => {
+                const areaData = hierarchy[area];
+                let projects = Object.keys(areaData.projects);
+                if (projectOrders[area] && projectOrders[area].length > 0) {
+                    projects = projects.sort((a, b) => {
+                        const aIdx = projectOrders[area].indexOf(a);
+                        const bIdx = projectOrders[area].indexOf(b);
+                        if (aIdx === -1 && bIdx === -1) return a.localeCompare(b);
+                        if (aIdx === -1) return 1;
+                        if (bIdx === -1) return -1;
+                        return aIdx - bIdx;
+                    });
+                }
+                const totalProducts = projects.reduce((sum, p) => sum + areaData.projects[p].products.length, 0);
+                const displayName = currentLang === 'zh' && areaData.nameZh ? areaData.nameZh : areaData.name;
+                html += '<div class="accordion-item" data-area="' + area + '">' +
+                    '<div class="accordion-header" onclick="toggleAccordion(this)">' +
+                    '<svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
+                    '<span class="accordion-title">' + displayName + ' (' + totalProducts + ')</span>' +
+                    '<div class="accordion-actions"><button onclick="event.stopPropagation(); deleteArea(\'' + area + '\')" title="Delete Area" style="color:var(--danger);">×</button><button onclick="event.stopPropagation(); showAddProjectModal(\'' + area + '\')" title="Add Project">+</button></div>' +
+                    '</div>' +
+                    '<div class="accordion-content">' +
+                    '<div style="padding:5px 0; border-bottom:1px solid #eee; cursor:pointer;" onclick="filterByArea(\'' + area + '\')"><span style="color:var(--primary); font-size:12px;">View All</span></div>';
+                projects.forEach(project => {
+                    const projectData = areaData.projects[project];
+                    const displayProjName = currentLang === 'zh' && projectData.nameZh ? projectData.nameZh : projectData.name;
+                    html += '<div class="project-item" onclick="filterByProject(\'' + area + '\', \'' + project.replace(/'/g, "\\'") + '\')"><span>' + displayProjName + ' (' + projectData.products.length + ')</span><button onclick="event.stopPropagation(); deleteProject(\'' + area + '\', \'' + project.replace(/'/g, "\\'") + '\')" title="Delete Project" style="color:var(--danger); background:none;border:none;cursor:pointer;font-size:14px;padding:2px 6px;">×</button></div>';
+                });
+                html += '</div></div>';
+            });
+            container.innerHTML = html;
+        }
+
+        function toggleAccordion(header) { header.parentElement.classList.toggle('open'); }
+        function filterByArea(area) { currentArea = area; filteredProducts = allProducts.filter(p => p.area === area); document.getElementById('searchInput').value = ''; currentPage = 1; selectedProducts.clear(); renderTable(); updateSelectedCount(); }
+        function filterByProject(area, project) { filteredProducts = allProducts.filter(p => p.area === area && p.itemA === project); document.getElementById('searchInput').value = ''; currentPage = 1; selectedProducts.clear(); renderTable(); updateSelectedCount(); }
+
+        function toggleSortSection(type) {
+            const section = document.getElementById(type === 'areas' ? 'sortAreasSection' : 'sortProjectsSection');
+            const isHidden = section.style.display === 'none';
+            section.style.display = isHidden ? 'block' : 'none';
+            section.previousElementSibling.querySelector('span:first-child').textContent = isHidden ? '▼' : '▶';
+            if (type === 'areas') renderAreaSortList();
+            else renderProjectSortList();
+        }
+
+        function renderAreaSortList() {
+            const container = document.getElementById('sortAreasSection');
+            const hierarchy = getAreaHierarchy();
+            let areas = Object.keys(hierarchy);
+            if (areaOrder.length === 0) areaOrder = [...areas];
+            let listHtml = '<ul class="sortable-list">';
+            areaOrder.filter(a => areas.includes(a)).forEach((area, idx) => {
+                listHtml += '<li class="sortable-item" draggable="true" data-name="' + area + '"><span class="handle">⋮⋮</span><span class="name">' + area + '</span></li>';
+            });
+            listHtml += '</ul><button class="btn btn-outline btn-sm" onclick="saveAreaOrder()" style="margin-top:10px;">Save Order</button>';
+            container.innerHTML = listHtml;
+            setupDragDrop();
+        }
+
+        function renderProjectSortList() {
+            const area = document.getElementById('sortProjectArea').value;
+            const container = document.getElementById('sortProjectsList');
+            const hierarchy = getAreaHierarchy();
+            const select = document.getElementById('sortProjectArea');
+            if (!select.options || select.options.length <= 1) {
+                const areas = Object.keys(hierarchy).sort();
+                select.innerHTML = '<option value="">-- Select Area --</option>' + areas.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+                if (area) select.value = area;
+            }
+            if (!area) { container.innerHTML = '<p style="color:#666;font-size:12px;">Select an area</p>'; return; }
+            const projects = Object.keys(hierarchy[area]?.projects || {});
+            if (!projectOrders[area]) projectOrders[area] = [...projects];
+            let listHtml = '<ul class="sortable-list">';
+            projectOrders[area].filter(p => projects.includes(p)).forEach((project, idx) => {
+                listHtml += '<li class="sortable-item" draggable="true" data-name="' + project + '"><span class="handle">⋮⋮</span><span class="name">' + project + '</span></li>';
+            });
+            listHtml += '</ul><button class="btn btn-outline btn-sm" onclick="saveProjectOrder(\'' + area + '\')" style="margin-top:10px;">Save Order</button>';
+            container.innerHTML = listHtml;
+            setupDragDrop();
+        }
+
+        function setupDragDrop() {
+            const items = document.querySelectorAll('.sortable-item');
+            items.forEach(item => {
+                item.addEventListener('dragstart', e => { item.classList.add('dragging'); });
+                item.addEventListener('dragend', e => { item.classList.remove('dragging'); });
+                item.addEventListener('dragover', e => { e.preventDefault(); const list = item.parentElement; const siblings = [...list.querySelectorAll('.sortable-item:not(.dragging)')]; const next = siblings.find(s => e.clientY < s.getBoundingClientRect().top + s.offsetHeight / 2); if (next) list.insertBefore(item, next); else list.appendChild(item); });
+            });
+        }
+
+        function saveAreaOrder() {
+            const items = document.querySelectorAll('#sortAreasSection .sortable-item');
+            areaOrder = [...items].map(item => item.dataset.name);
+            saveOrderSettings();
+            renderAreaHierarchy();
+            showToast('Area order saved', 'success');
+        }
+
+        function saveProjectOrder(area) {
+            const items = document.querySelectorAll('#sortProjectsList .sortable-item');
+            projectOrders[area] = [...items].map(item => item.dataset.name);
+            saveOrderSettings();
+            renderAreaHierarchy();
+            showToast('Project order saved', 'success');
+        }
+
+        function showAddAreaModal() { document.getElementById('newAreaName').value = ''; document.getElementById('newAreaNameZh').value = ''; openModal('addAreaModal'); }
+        function saveArea() {
+            const name = document.getElementById('newAreaName').value.trim();
+            const nameZh = document.getElementById('newAreaNameZh').value.trim();
+            if (!name) { showToast('Please enter area name', 'error'); return; }
+            // 只添加区域到areaOrder，不创建默认产品和项目
+            if (!areaOrder.includes(name)) areaOrder.push(name);
+            saveData(); saveOrderSettings();
+            renderAreaHierarchy(); updateStats(); closeModal('addAreaModal');
+            showToast(currentLang === 'zh' ? '区域已添加' : 'Area added', 'success');
+        }
+
+        function showAddProjectModal(area) {
+            const hierarchy = getAreaHierarchy();
+            const areaSelect = document.getElementById('projectArea');
+            const areas = Object.keys(hierarchy).sort();
+            areaSelect.innerHTML = areas.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+            if (area) areaSelect.value = area;
+            document.getElementById('newProjectName').value = '';
+            document.getElementById('newProjectNameZh').value = '';
+            openModal('addProjectModal');
+        }
+        function saveProject() {
+            const area = document.getElementById('projectArea').value;
+            const name = document.getElementById('newProjectName').value.trim();
+            const nameZh = document.getElementById('newProjectNameZh').value.trim();
+            if (!name) { showToast('Please enter project name', 'error'); return; }
+            // 只添加项目到projectOrders，不创建默认产品
+            if (!projectOrders[area]) projectOrders[area] = [];
+            if (!projectOrders[area].includes(name)) projectOrders[area].push(name);
+            saveData(); saveOrderSettings();
+            renderAreaHierarchy(); updateStats(); closeModal('addProjectModal');
+            showToast(currentLang === 'zh' ? '项目已添加' : 'Project added', 'success');
+        }
+        
+        function deleteArea(areaName) {
+            const hierarchy = getAreaHierarchy();
+            const areaData = hierarchy[areaName];
+            const projectCount = Object.keys(areaData.projects).length;
+            
+            if (projectCount > 0) {
+                // Show warning - area has projects
+                document.getElementById('deleteCount').textContent = projectCount;
+                let listHtml = '<div class="alert alert-danger" style="margin-bottom:10px;">' + 
+                    (currentLang === 'zh' ? '该区域还有 ' + projectCount + ' 个项目，请先删除所有项目' : 'This area has ' + projectCount + ' projects. Please delete all projects first.') + '</div>';
+                const projects = Object.keys(areaData.projects);
+                projects.forEach(p => {
+                    listHtml += '<div style="padding:4px; border-bottom:1px solid #eee; font-size:12px;">' + p + '</div>';
+                });
+                document.getElementById('deleteList').innerHTML = listHtml;
+                openModal('deleteModal');
+                return;
+            }
+            
+            // No projects, confirm delete
+            document.getElementById('deleteCount').textContent = 1;
+            document.getElementById('deleteList').innerHTML = '<div style="padding:4px; font-size:12px;">' + areaName + '</div>';
+            window._pendingDelete = { type: 'area', name: areaName };
+            openModal('deleteModal');
+        }
+        
+        function deleteProject(areaName, projectName) {
+            const hierarchy = getAreaHierarchy();
+            const areaData = hierarchy[areaName];
+            const projectData = areaData.projects[projectName];
+            const productCount = projectData.products.length;
+            
+            if (productCount > 0) {
+                // Show warning - project has products
+                document.getElementById('deleteCount').textContent = productCount;
+                let listHtml = '<div class="alert alert-danger" style="margin-bottom:10px;">' + 
+                    (currentLang === 'zh' ? '该项目还有 ' + productCount + ' 个产品，请先删除所有产品' : 'This project has ' + productCount + ' products. Please delete all products first.') + '</div>';
+                projectData.products.slice(0, 10).forEach(p => {
+                    listHtml += '<div style="padding:4px; border-bottom:1px solid #eee; font-size:12px;">' + (p.itemB || p.itemBZh || 'Product') + '</div>';
+                });
+                if (productCount > 10) listHtml += '<div style="font-size:12px; color:#666;">... and ' + (productCount - 10) + ' more</div>';
+                document.getElementById('deleteList').innerHTML = listHtml;
+                openModal('deleteModal');
+                return;
+            }
+            
+            // No products, confirm delete
+            document.getElementById('deleteCount').textContent = 1;
+            document.getElementById('deleteList').innerHTML = '<div style="padding:4px; font-size:12px;">' + projectName + '</div>';
+            window._pendingDelete = { type: 'project', name: projectName, area: areaName };
+            openModal('deleteModal');
+        }
+
+        function handleSearch(event) { if (event.key === 'Enter') performSearch(); }
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) filteredProducts = currentArea ? allProducts.filter(p => p.area === currentArea) : [...allProducts];
+            else filteredProducts = allProducts.filter(p => p.itemB?.toLowerCase() === query.toLowerCase() || p.itemBZh?.toLowerCase() === query.toLowerCase());
+            currentPage = 1; selectedProducts.clear(); renderTable(); updateSelectedCount();
+        }
+
+        function toggleSelectAll() {
+            const checked = document.getElementById('selectAll').checked;
+            document.getElementById('tableSelectAll').checked = checked;
+            if (checked) filteredProducts.forEach(p => selectedProducts.add(p.id));
+            else selectedProducts.clear();
+            renderTable(); updateSelectedCount();
+        }
+        function toggleTableSelectAll() {
+            const checked = document.getElementById('tableSelectAll').checked;
+            document.getElementById('selectAll').checked = checked;
+            if (checked) filteredProducts.forEach(p => selectedProducts.add(p.id));
+            else selectedProducts.clear();
+            renderTable(); updateSelectedCount();
+        }
+        function toggleProduct(id) { if (selectedProducts.has(id)) selectedProducts.delete(id); else selectedProducts.add(id); renderTable(); updateSelectedCount(); }
+        function updateSelectedCount() {
+            const count = selectedProducts.size;
+            document.getElementById('selectedCount').textContent = count + ' selected';
+            document.getElementById('batchDeleteBtn').disabled = count === 0;
+            document.getElementById('batchEditBtn').disabled = count === 0;
+            const allChecked = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id));
+            document.getElementById('selectAll').checked = allChecked;
+            document.getElementById('tableSelectAll').checked = allChecked;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('productTable');
+            const emptyState = document.getElementById('emptyState');
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+            const pageProducts = filteredProducts.slice(startIdx, endIdx);
+            if (filteredProducts.length === 0) { tbody.innerHTML = ''; emptyState.style.display = 'block'; document.getElementById('pagination').innerHTML = ''; return; }
+            emptyState.style.display = 'none';
+            let rows = '';
+            pageProducts.forEach(p => {
+                const name = currentLang === 'zh' && p.itemBZh ? p.itemBZh : p.itemB;
+                const areaName = currentLang === 'zh' && p.areaZh ? p.areaZh : p.area;
+                const projName = currentLang === 'zh' && p.itemAZh ? p.itemAZh : p.itemA;
+                rows += '<tr><td class="checkbox-col"><input type="checkbox" ' + (selectedProducts.has(p.id) ? 'checked' : '') + ' onchange="toggleProduct(\'' + p.id + '\')"></td>' +
+                    '<td>' + name + '</td><td>' + areaName + '</td><td>' + projName + '</td>' +
+                    '<td class="price-col">' + (p.unitPrice > 0 ? 'RM ' + p.unitPrice.toFixed(2) : '-') + '</td>' +
+                    '<td class="price-col">' + (p.highEndPrice > 0 ? 'RM ' + p.highEndPrice.toFixed(2) : '-') + '</td>' +
+                    '<td class="price-col">' + (p.dealerPrice > 0 ? 'RM ' + p.dealerPrice.toFixed(2) : '-') + '</td>' +
+                    '<td class="price-col">' + (p.costPrice > 0 ? 'RM ' + p.costPrice.toFixed(2) : '-') + '</td>' +
+                    '<td class="price-col">' + (p.designFee > 0 ? 'RM ' + p.designFee.toFixed(2) : '-') + '</td>' +
+                    '<td class="price-col">' + (p.installFee > 0 ? 'RM ' + p.installFee.toFixed(2) : '-') + '</td>' +
+                    '<td><button class="btn btn-sm btn-outline" onclick="editProduct(\'' + p.id + '\')">Edit</button> <button class="btn btn-sm btn-outline" onclick="showAdjustModal(\'' + p.id + '\')">Adjust</button></td></tr>';
+            });
+            tbody.innerHTML = rows;
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredProducts.length / pageSize);
+            const pagination = document.getElementById('pagination');
+            if (totalPages <= 1) { pagination.innerHTML = ''; return; }
+            let html = '<button class="page-btn" onclick="goToPage(1)" ' + (currentPage === 1 ? 'disabled' : '') + '>«</button><button class="page-btn" onclick="goToPage(' + (currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + '>‹</button>';
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) html += '<button class="page-btn ' + (i === currentPage ? 'active' : '') + '" onclick="goToPage(' + i + ')">' + i + '</button>';
+            html += '<button class="page-btn" onclick="goToPage(' + (currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>›</button><button class="page-btn" onclick="goToPage(' + totalPages + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>»</button>';
+            const startIdx = (currentPage - 1) * pageSize + 1;
+            const endIdx = Math.min(currentPage * pageSize, filteredProducts.length);
+            html += '<span class="page-info">' + startIdx + '-' + endIdx + ' / ' + filteredProducts.length + '</span>';
+            pagination.innerHTML = html;
+        }
+        function goToPage(page) { const totalPages = Math.ceil(filteredProducts.length / pageSize); if (page < 1 || page > totalPages) return; currentPage = page; renderTable(); window.scrollTo({top: 0, behavior: 'smooth'}); }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function editProduct(id) {
+            const product = allProducts.find(p => p.id === id);
+            if (!product) return;
+            document.getElementById('editProductId').value = id;
+            document.getElementById('editModalTitle').textContent = currentLang === 'zh' ? '编辑产品' : 'Edit Product';
+            fillForm(product); openModal('editModal');
+        }
+        
+        // ============ BATCH EDIT ============
+        function batchEdit() {
+            if (selectedProducts.size === 0) return;
+            
+            const selectedItems = allProducts.filter(p => selectedProducts.has(p.id));
+            
+            // Check if all itemB are the same
+            const itemBs = [...new Set(selectedItems.map(p => p.itemB))];
+            
+            if (itemBs.length > 1) {
+                // 产品名称不一致，显示警告，不弹出修改页面
+                const mismatchList = selectedItems.map(p => p.itemB + ' (' + p.itemA + ')').join('<br>');
+                document.getElementById('mismatchNames').innerHTML = mismatchList;
+                showToast(currentLang === 'zh' ? '产品名称不一致！' : 'Product names do not match!', 'error');
+                // 显示不一致的产品列表（使用 alert 或单独的警告框）
+                alert((currentLang === 'zh' ? '产品名称不一致！\n\n' : 'Product names do not match!\n\n') + selectedItems.map(p => p.itemB + ' (' + p.itemA + ')').join('\n'));
+                return;
+            }
+            
+            // All itemB are the same, proceed with batch edit
+            document.getElementById('editProductId').value = '';
+            document.getElementById('batchEditCount').textContent = selectedProducts.size;
+            document.getElementById('batchEditWarning').style.display = 'block';
+            document.getElementById('nameMismatchAlert').style.display = 'none';
+            document.getElementById('editModalTitle').textContent = (currentLang === 'zh' ? '批量编辑 ' : 'Batch Edit ') + '(' + selectedProducts.size + ')';
+            
+            // Fill form with first product's data
+            fillForm(selectedItems[0]);
+            openModal('editModal');
+        }
+        
+        function showAddModal() {
+            document.getElementById('editProductId').value = '';
+            document.getElementById('editModalTitle').textContent = currentLang === 'zh' ? '添加产品' : 'Add Product';
+            clearForm(); openModal('editModal');
+        }
+        
+        function showAdjustModal(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+            
+            document.getElementById('adjustProductId').value = productId;
+            
+            // Populate area select with current area selected
+            const areaSelect = document.getElementById('adjustAreaSelect');
+            const hierarchy = getAreaHierarchy();
+            const areas = Object.keys(hierarchy).sort();
+            areaSelect.innerHTML = '<option value="">-- Select Area --</option>' + areas.map(a => '<option value="' + a + '" ' + (a === product.area ? 'selected' : '') + '>' + (currentLang === 'zh' && hierarchy[a].nameZh ? hierarchy[a].nameZh : a) + '</option>').join('');
+            
+            // Populate project select with current project selected
+            updateAdjustProjectSelect();
+            openModal('adjustModal');
+        }
+        
+        function updateAdjustProjectSelect() {
+            const area = document.getElementById('adjustAreaSelect').value;
+            const productId = document.getElementById('adjustProductId').value;
+            const product = allProducts.find(p => p.id === productId);
+            const projectSelect = document.getElementById('adjustProjectSelect');
+            
+            if (!area) {
+                projectSelect.innerHTML = '<option value="">-- Select Project --</option>';
+                return;
+            }
+            
+            const hierarchy = getAreaHierarchy();
+            const projects = Object.keys(hierarchy[area]?.projects || {}).sort();
+            projectSelect.innerHTML = '<option value="">-- Select Project --</option>' + projects.map(p => {
+                const name = currentLang === 'zh' && hierarchy[area].projects[p].nameZh ? hierarchy[area].projects[p].nameZh : p;
+                return '<option value="' + p + '" ' + (product && p === product.itemA ? 'selected' : '') + '>' + name + '</option>';
+            }).join('');
+        }
+        
+        function copyProduct() {
+            const productId = document.getElementById('adjustProductId').value;
+            const areaSelect = document.getElementById('adjustAreaSelect');
+            const projectSelect = document.getElementById('adjustProjectSelect');
+            const newArea = areaSelect.value;
+            const newProject = projectSelect.value;
+            
+            if (!newArea || !newProject) {
+                showToast(currentLang === 'zh' ? '请选择区域和项目' : 'Please select area and project', 'error');
+                return;
+            }
+            
+            const originalProduct = allProducts.find(p => p.id === productId);
+            if (!originalProduct) return;
+            
+            // Get display names from selected options
+            const areaDisplayName = areaSelect.options[areaSelect.selectedIndex].textContent;
+            const projectDisplayName = projectSelect.options[projectSelect.selectedIndex].textContent;
+            
+            // Create copy with same itemB/itemBZh
+            const newProduct = { ...originalProduct, id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) };
+            newProduct.area = newArea;
+            newProduct.areaZh = areaDisplayName === areaSelect.options[0].textContent ? newArea : areaDisplayName;
+            newProduct.itemA = newProject;
+            newProduct.itemAZh = projectDisplayName === projectSelect.options[0].textContent ? newProject : projectDisplayName;
+            
+            allProducts.push(newProduct);
+            saveData(); filteredProducts = [...allProducts]; renderAreaHierarchy(); renderTable(); updateStats();
+            closeModal('adjustModal');
+            showToast(currentLang === 'zh' ? '已复制产品' : 'Product copied', 'success');
+        }
+        
+        function moveProduct() {
+            const productId = document.getElementById('adjustProductId').value;
+            const areaSelect = document.getElementById('adjustAreaSelect');
+            const projectSelect = document.getElementById('adjustProjectSelect');
+            const newArea = areaSelect.value;
+            const newProject = projectSelect.value;
+            
+            if (!newArea || !newProject) {
+                showToast(currentLang === 'zh' ? '请选择区域和项目' : 'Please select area and project', 'error');
+                return;
+            }
+            
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+            
+            // Get display names from selected options
+            const areaDisplayName = areaSelect.options[areaSelect.selectedIndex].textContent;
+            const projectDisplayName = projectSelect.options[projectSelect.selectedIndex].textContent;
+            
+            // Update product location with correct display names
+            product.area = newArea;
+            product.areaZh = areaDisplayName === areaSelect.options[0].textContent ? newArea : areaDisplayName;
+            product.itemA = newProject;
+            product.itemAZh = projectDisplayName === projectSelect.options[0].textContent ? newProject : projectDisplayName;
+            
+            saveData(); filteredProducts = [...allProducts]; renderAreaHierarchy(); renderTable(); updateStats();
+            closeModal('adjustModal');
+            showToast(currentLang === 'zh' ? '已移动产品' : 'Product moved', 'success');
+        }
+        function clearForm() { 
+            document.querySelectorAll('#editForm .form-input').forEach(i => i.value = ''); 
+            document.getElementById('editAlgorithm').value = 'Per Unit';
+            document.getElementById('editSec1Mode').value = 'return_base';
+            updateAlgorithmFields();
+            renderProjectCheckboxes(''); 
+        }
+        
+        function updateAlgorithmFields() {
+            const algo = document.getElementById('editAlgorithm').value;
+            const dimInput = document.getElementById('editInputDimension');
+            const notesInput = document.getElementById('editAlgorithmNotes');
+            
+            if (algo === 'Per Unit') {
+                dimInput.placeholder = 'UNIT';
+                notesInput.placeholder = 'UNIT * Unit price = Total price';
+            } else if (algo === 'Per SQM') {
+                dimInput.placeholder = 'W*H*D';
+                notesInput.placeholder = 'W*H*0.000001 = Value * Unit Price = Total Price';
+            } else if (algo === 'Per LM') {
+                dimInput.placeholder = 'W*LM';
+                notesInput.placeholder = 'W*0.001 = Value * Unit price = Total price';
+            }
+        }
+        
+        function calculateCostPrice() {
+            const cost1 = parseFloat(document.getElementById('editCostPrice1').value) || 0;
+            const percent = parseFloat(document.getElementById('editAdjustPercent').value) || 0;
+            const result = cost1 * (1 + percent / 100);
+            document.getElementById('editCostPricePreview').value = result.toFixed(2);
+            document.getElementById('editCostPrice').value = result.toFixed(2);
+        }
+        
+        function fillForm(product) {
+            document.getElementById('editAreaDisplay').value = currentLang === 'zh' && product.areaZh ? product.areaZh : (product.area || '');
+            document.getElementById('editProjectDisplay').value = currentLang === 'zh' && product.itemAZh ? product.itemAZh : (product.itemA || '');
+            document.getElementById('editItemB').value = product.itemB || '';
+            document.getElementById('editItemBZh').value = product.itemBZh || '';
+            document.getElementById('editDescription').value = product.description || '';
+            document.getElementById('editDescriptionZh').value = product.descriptionZh || '';
+            document.getElementById('editUnitPrice').value = product.unitPrice || '';
+            document.getElementById('editHighEndPrice').value = product.highEndPrice || '';
+            document.getElementById('editDealerPrice').value = product.dealerPrice || '';
+            document.getElementById('editCostPrice').value = product.costPrice || '';
+            document.getElementById('editCostPrice1').value = product.costPrice1 || '';
+            document.getElementById('editAdjustPercent').value = product.adjustPercent || '';
+            document.getElementById('editNoteA').value = product.noteA || '';
+            document.getElementById('editNoteACn').value = product.noteACn || '';
+            document.getElementById('editNoteB').value = product.noteB || '';
+            document.getElementById('editNoteBCn').value = product.noteBCn || '';
+            document.getElementById('editDesignFee').value = product.designFee || '';
+            document.getElementById('editInstallFee').value = product.installFee || '';
+            document.getElementById('editAlgorithm').value = product.algorithm || 'Per Unit';
+            document.getElementById('editInputDimension').value = product.inputDimension || '';
+            document.getElementById('editAlgorithmNotes').value = product.algorithmNotes || '';
+            updateAlgorithmFields();
+            // Section 1
+            document.getElementById('editSec1Width').value = product.sec1Width || '';
+            document.getElementById('editSec1Height').value = product.sec1Height || '';
+            document.getElementById('editSec1Depth').value = product.sec1Depth || '';
+            document.getElementById('editSec1Mode').value = product.sec1Mode || 'return_base';
+            // Section 2
+            document.getElementById('editWSpecRes').value = product.wSpecRes || '';
+            document.getElementById('editWSpecMode').value = product.wSpecMode || 'none';
+            document.getElementById('editHSpecRes').value = product.hSpecRes || '';
+            document.getElementById('editHSpecMode').value = product.hSpecMode || 'none';
+            document.getElementById('editDSpecRes').value = product.dSpecRes || '';
+            document.getElementById('editDSpecMode').value = product.dSpecMode || 'none';
+            renderProjectCheckboxes(product.itemA);
+        }
+        
+        function renderProjectCheckboxes(currentProject) {
+            const container = document.getElementById('projectCheckboxes');
+            const projects = [...new Set(allProducts.map(p => p.itemA))].sort();
+            container.innerHTML = projects.map(p => '<label class="project-item-check"><input type="checkbox" value="' + p + '" ' + (p === currentProject ? 'checked' : '') + '>' + p + '</label>').join('');
+        }
+        function saveProduct() {
+            const productId = document.getElementById('editProductId').value;
+            const formData = {
+                itemB: document.getElementById('editItemB').value, itemBZh: document.getElementById('editItemBZh').value,
+                description: document.getElementById('editDescription').value, descriptionZh: document.getElementById('editDescriptionZh').value,
+                unitPrice: parseFloat(document.getElementById('editUnitPrice').value) || 0,
+                highEndPrice: parseFloat(document.getElementById('editHighEndPrice').value) || 0,
+                dealerPrice: parseFloat(document.getElementById('editDealerPrice').value) || 0,
+                costPrice: parseFloat(document.getElementById('editCostPrice').value) || 0,
+                costPrice1: parseFloat(document.getElementById('editCostPrice1').value) || 0,
+                adjustPercent: parseFloat(document.getElementById('editAdjustPercent').value) || 0,
+                noteA: document.getElementById('editNoteA').value, noteACn: document.getElementById('editNoteACn').value,
+                noteB: document.getElementById('editNoteB').value, noteBCn: document.getElementById('editNoteBCn').value,
+                designFee: parseFloat(document.getElementById('editDesignFee').value) || 0,
+                installFee: parseFloat(document.getElementById('editInstallFee').value) || 0,
+                algorithm: document.getElementById('editAlgorithm').value,
+                inputDimension: document.getElementById('editInputDimension').value,
+                algorithmNotes: document.getElementById('editAlgorithmNotes').value,
+                sec1Width: document.getElementById('editSec1Width').value,
+                sec1Height: document.getElementById('editSec1Height').value,
+                sec1Depth: document.getElementById('editSec1Depth').value,
+                sec1Mode: document.getElementById('editSec1Mode').value,
+                wSpecRes: document.getElementById('editWSpecRes').value,
+                wSpecMode: document.getElementById('editWSpecMode').value,
+                hSpecRes: document.getElementById('editHSpecRes').value,
+                hSpecMode: document.getElementById('editHSpecMode').value,
+                dSpecRes: document.getElementById('editDSpecRes').value,
+                dSpecMode: document.getElementById('editDSpecMode').value
+            };
+            const selectedProjects = [...document.querySelectorAll('#projectCheckboxes input:checked')].map(cb => cb.value);
+            
+            if (!formData.itemB) { showToast('Please enter product name', 'error'); return; }
+            
+            const isBatchEdit = document.getElementById('batchEditWarning').style.display === 'block' && selectedProducts.size > 0;
+            
+            if (isBatchEdit) {
+                // Batch edit mode: update all selected products
+                selectedProducts.forEach(id => {
+                    const product = allProducts.find(p => p.id === id);
+                    if (product) Object.assign(product, formData);
+                });
+                
+                // Create new products for newly checked projects
+                const batchProducts = allProducts.filter(p => p.itemB === formData.itemB && p.itemBZh === formData.itemBZh);
+                const existingProjects = [...new Set(batchProducts.map(p => p.itemA))];
+                
+                selectedProjects.forEach(proj => {
+                    if (!existingProjects.includes(proj)) {
+                        const newProduct = { 
+                            ...formData, 
+                            id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), 
+                            itemA: proj, itemAZh: '', 
+                            area: currentArea || 'OTHER', areaZh: '' 
+                        };
+                        allProducts.push(newProduct);
+                    }
+                });
+            } else if (productId) {
+                // Single edit mode - only update the specific product
+                const product = allProducts.find(p => p.id === productId);
+                if (product) {
+                    // Update only this product
+                    Object.assign(product, formData);
+                }
+            } else {
+                // New product mode
+                const newProduct = { id: 'p_' + Date.now(), area: currentArea || 'OTHER', areaZh: '', itemA: selectedProjects[0] || 'Other', itemAZh: '', ...formData };
+                allProducts.push(newProduct);
+            }
+            
+            selectedProducts.clear();
+            saveData(); filteredProducts = [...allProducts]; performSearch(); renderAreaHierarchy(); updateStats(); 
+            document.getElementById('batchEditWarning').style.display = 'none';
+            closeModal('editModal');
+            showToast('Saved', 'success');
+        }
+
+        function batchDelete() {
+            if (selectedProducts.size === 0) return;
+            const selected = allProducts.filter(p => selectedProducts.has(p.id));
+            document.getElementById('deleteCount').textContent = selected.length;
+            let listHtml = '';
+            selected.slice(0, 20).forEach(p => { listHtml += '<div style="padding:4px; border-bottom:1px solid #eee; font-size:12px;">' + p.itemB + ' (' + p.itemA + ')</div>'; });
+            if (selected.length > 20) listHtml += '<div style="font-size:12px; color:#666;">... and ' + (selected.length - 20) + ' more</div>';
+            document.getElementById('deleteList').innerHTML = listHtml;
+            openModal('deleteModal');
+        }
+        function confirmDelete() {
+            // Check if there's pending delete for area or project
+            if (window._pendingDelete) {
+                const pending = window._pendingDelete;
+                if (pending.type === 'area') {
+                    // Remove area from areaOrder
+                    areaOrder = areaOrder.filter(a => a !== pending.name);
+                    delete projectOrders[pending.name];
+                    saveOrderSettings();
+                    renderAreaHierarchy(); updateStats();
+                    showToast(currentLang === 'zh' ? '区域已删除' : 'Area deleted', 'success');
+                } else if (pending.type === 'project') {
+                    // Remove project from projectOrders
+                    if (projectOrders[pending.area]) {
+                        projectOrders[pending.area] = projectOrders[pending.area].filter(p => p !== pending.name);
+                        saveOrderSettings();
+                    }
+                    renderAreaHierarchy(); updateStats();
+                    showToast(currentLang === 'zh' ? '项目已删除' : 'Project deleted', 'success');
+                }
+                window._pendingDelete = null;
+                closeModal('deleteModal');
+                return;
+            }
+            
+            // Default: delete selected products
+            allProducts = allProducts.filter(p => !selectedProducts.has(p.id));
+            selectedProducts.clear(); saveData(); filteredProducts = [...allProducts]; performSearch(); renderAreaHierarchy(); updateStats(); updateSelectedCount(); closeModal('deleteModal');
+            showToast(currentLang === 'zh' ? '已删除' : 'Deleted', 'success');
+        }
+
+        // ============ IMPORT ============
+        function showImportModal() { document.getElementById('importPreview').style.display = 'none'; document.getElementById('importConfirmBtn').disabled = true; openModal('importModal'); }
+        function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+        function handleDragLeave(e) { e.currentTarget.classList.remove('dragover'); }
+        function handleDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); const file = e.dataTransfer.files[0]; if (file) processFile(file); }
+        function handleFileSelect(e) { const file = e.target.files[0]; if (file) processFile(file); }
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let data = [];
+                    const fileName = file.name;
+                    
+                    if (fileName.endsWith('.json')) {
+                        const json = JSON.parse(e.target.result);
+                        data = json.products || (Array.isArray(json) ? json : [json]);
+                    } else if (fileName.match(/\.xlsx?$/)) {
+                        const workbook = XLSX.read(e.target.result);
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const rawData = XLSX.utils.sheet_to_json(sheet, {header:1});
+                        
+                        // Find header row (row with 'AREA' at index 0)
+                        let headerRowIndex = -1;
+                        for (let i = 0; i < rawData.length; i++) {
+                            const row = rawData[i];
+                            if (row && (row[0] === 'AREA' || row[0] === '区域' || row[0] === 'ITEM A')) {
+                                headerRowIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        if (headerRowIndex === -1) {
+                            showToast('Cannot find header row', 'error');
+                            return;
+                        }
+                        
+                        // Process data rows using column indices (0-based)
+                        // Col 0: AREA, 1: 区域, 2: ITEM A, 3: 产品 A, 4: ITEM B, 5: 产品 B
+                        // Col 6: DESCRIPTION, 7: 产品说明, 8: Note A, 9: 备注 A, 10: Note B, 11: 备注 B
+                        // Col 12: Selling Price, 13: High-End Price, 14: Dealer Price, 15: Cost Price
+                        // Col 16: Cost Price 1, 17: Adjust Percent %
+                        // Col 18: Design Fee, 19: Installation Fee
+                        // Col 20: Input Dimension, 21: algorithm, 22: 试算说明, 23: Algorithm Notes
+                        // Col 24: Section2 Restrictions(D), 25: Section2 Restrictions(H), 26: Section2 Restrictions(W)
+                        // Col 27: Section2 specialMode(D), 28: Section2 specialMode(H), 29: Section2 specialMode(W)
+                        // Col 30: Section1 Restrictions(D), 31: Section1 Restrictions(H), 32: Section1 Restrictions(W)
+                        // Col 33: Section1 specialMode W/H/D
+                        for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+                            const row = rawData[i];
+                            if (!row || row.length < 5) continue;
+                            const itemB_EN = row[4];
+                            const itemB_ZH = row[5];
+                            if (itemB_EN || itemB_ZH) {
+                                const rowObj = {
+                                    // Basic info (columns 0-5)
+                                    'AREA': row[0] || '',
+                                    '区域': row[1] || '',
+                                    'ITEM A': row[2] || '',
+                                    '产品 A': row[3] || '',
+                                    'ITEM B': row[4] || '',
+                                    '产品 B': row[5] || '',
+                                    // Description (columns 6-7)
+                                    'DESCRIPTION ': row[6] || '',
+                                    '产品说明 / 描述': row[7] || '',
+                                    // Notes (columns 8-11)
+                                    'Note A': row[8] || '',
+                                    '备注 A': row[9] || '',
+                                    'Note B': row[10] || '',
+                                    '备注 B': row[11] || '',
+                                    // Prices (columns 12-15)
+                                    'Selling Price RM Meters': row[12],
+                                    'High-End Price': row[13],
+                                    'Dealer Price RM Meters': row[14],
+                                    'Cost Price RM Meters': row[15],
+                                    // Adjustment fields (columns 16-17)
+                                    'Cost Price 1': row[16],
+                                    'Adjust Percent %': row[17],
+                                    // Fees (columns 18-19)
+                                    'Design Fee (RM)': row[18],
+                                    'Installation Fee (RM)': row[19],
+                                    // Calculation (columns 20-23)
+                                    'Input Dimension (mm)': row[20] || '',
+                                    'algorithm': row[21] || '',
+                                    '试算说明': row[22] || '',
+                                    'Algorithm Notes': row[23] || '',
+                                    // Section 2 - Exceed limit (columns 24-29)
+                                    'Restrictions (D) / 限制深度 ': row[24],
+                                    'Restrictions (H) / 限制高度': row[25],
+                                    'Restrictions (W) / 限制宽度': row[26],
+                                    'specialMode (D)': row[27],
+                                    'specialMode (H)': row[28],
+                                    'specialMode (W)': row[29],
+                                    // Section 1 - Within limit (columns 30-33)
+                                    'Sec1 Restrictions (D)': row[30],
+                                    'Sec1 Restrictions (H)': row[31],
+                                    'Sec1 Restrictions (W)': row[32],
+                                    'specialMode W/H/D': row[33]
+                                };
+                                data.push(rowObj);
+                            }
+                        }
+                    } else if (fileName.endsWith('.csv')) {
+                        const text = e.target.result;
+                        const lines = text.split('\n').filter(l => l.trim());
+                        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                        for (let i = 1; i < lines.length; i++) {
+                            const values = lines[i].match(/".*?"|[^,]+/g) || [];
+                            const row = {};
+                            values.forEach((v, idx) => { row[headers[idx]] = v.trim().replace(/"/g, ''); });
+                            if (row['ITEM B'] || row['产品 B']) data.push(row);
+                        }
+                    }
+                    
+                    if (!Array.isArray(data) || data.length === 0) {
+                        showToast('Cannot parse file or file is empty', 'error');
+                        return;
+                    }
+                    
+                    document.getElementById('importPreview').style.display = 'block';
+                    document.getElementById('previewContent').innerHTML = '<strong>File:</strong> ' + fileName + '<br><strong>Products Found:</strong> ' + data.length + '<br><small>Click confirm to import</small>';
+                    document.getElementById('importConfirmBtn').disabled = false;
+                    window._importData = data;
+                    window._importFileName = fileName;
+                } catch (err) {
+                    console.error(err);
+                    showToast('Failed to parse: ' + err.message, 'error');
+                }
+            };
+            if (file.name.match(/\.xlsx?$/)) reader.readAsArrayBuffer(file);
+            else reader.readAsText(file);
+        }
+
+        // Helper function to parse special mode from Excel format
+        function parseSpecialMode(val) {
+            if (!val) return 'none';
+            const v = String(val).toLowerCase().trim();
+            if (v === 'none' || v === '') return 'none';
+            // Check for underscore format first (e.g., plus_150_100, return_base, by_sqm)
+            if (v === 'return_base') return 'return_base';
+            if (v === 'plus_150_100') return 'plus_150_100';
+            if (v === 'plus_60_50') return 'plus_60_50';
+            if (v === 'plus_20_10') return 'plus_20_10';
+            if (v === 'by_sqm') return 'by_sqm';
+            // Fallback to keyword matching
+            if (v.includes('return_base') || v.includes('return base') || v.includes('返回基础')) return 'return_base';
+            if (v.includes('plus_150_100') || v.includes('+150') || v.includes('150/100')) return 'plus_150_100';
+            if (v.includes('plus_60_50') || v.includes('+60') || v.includes('60/50')) return 'plus_60_50';
+            if (v.includes('plus_20_10') || v.includes('+20') || v.includes('20/10')) return 'plus_20_10';
+            if (v.includes('by_sqm') || v.includes('sqm') || v.includes('平方米')) return 'by_sqm';
+            if (v.includes('zero')) return 'zero';
+            return 'none';
+        }
+        
+        // Helper function to parse price (handle formula like =SUM(M4/0.85))
+        function parsePrice(val) {
+            if (!val) return 0;
+            const str = String(val);
+            if (str.startsWith('=')) return 0; // Formulas need Excel to evaluate
+            const num = parseFloat(str.replace(/[^0-9.-]/g, ''));
+            return isNaN(num) ? 0 : num;
+        }
+
+        function confirmImport() {
+            if (!window._importData) return;
+            const data = window._importData;
+            const fileName = window._importFileName || '';
+            let added = 0;
+            const isExcel = fileName.match(/\.xlsx?$/);
+            
+            data.forEach((item, idx) => {
+                let product = {};
+                
+                if (isExcel) {
+                    // Excel format - use column names from your file
+                    product = {
+                        id: 'p_' + Date.now() + '_' + idx,
+                        area: item['AREA'] || 'OTHER',
+                        areaZh: item['区域'] || '',
+                        itemA: item['ITEM A'] || 'Other',
+                        itemAZh: item['产品 A'] || '',
+                        itemB: item['ITEM B'] || '',
+                        itemBZh: item['产品 B'] || '',
+                        description: item['DESCRIPTION '] || '',
+                        descriptionZh: item['产品说明 / 描述'] || '',
+                        noteA: item['Note A'] || '',
+                        noteACn: item['备注 A'] || '',
+                        noteB: item['Note B'] || '',
+                        noteBCn: item['备注 B'] || '',
+                        unitPrice: parsePrice(item['Selling Price RM Meters']),
+                        highEndPrice: parsePrice(item['High-End Price']),
+                        dealerPrice: parsePrice(item['Dealer Price RM Meters']),
+                        costPrice: parsePrice(item['Cost Price RM Meters']),
+                        costPrice1: parsePrice(item['Cost Price 1']),
+                        adjustPercent: parseFloat(item['Adjust Percent %'] || 0),
+                        designFee: parsePrice(item['Design Fee (RM)']),
+                        installFee: parsePrice(item['Installation Fee (RM)']),
+                        inputDimension: item['Input Dimension (mm)'] || '',
+                        algorithm: item['algorithm'] || 'unit price',
+                        algorithmNotes: item['Algorithm Notes'] || item['试算说明'] || '',
+                        // Section 1: Return base price within limit (columns 30-33)
+                        sec1Width: item['Sec1 Restrictions (W)'] || '',
+                        sec1Height: item['Sec1 Restrictions (H)'] || '',
+                        sec1Depth: item['Sec1 Restrictions (D)'] || '',
+                        sec1Mode: parseSpecialMode(item['specialMode W/H/D']),
+                        // Section 2: Exceed limit special calculation (columns 24-29)
+                        wSpecRes: item['Restrictions (W) / 限制宽度'] || '',
+                        wSpecMode: parseSpecialMode(item['specialMode (W)']),
+                        hSpecRes: item['Restrictions (H) / 限制高度'] || '',
+                        hSpecMode: parseSpecialMode(item['specialMode (H)']),
+                        dSpecRes: item['Restrictions (D) / 限制深度 '] || '',
+                        dSpecMode: parseSpecialMode(item['specialMode (D)'])
+                    };
+                } else {
+                    // JSON/CSV format
+                    product = {
+                        id: 'p_' + Date.now() + '_' + idx,
+                        area: item.area || item.AREA || item.Area || 'OTHER',
+                        areaZh: item.areaZh || item['区域'] || '',
+                        itemA: item.itemA || item.ITEM_A || item.ItemA || item['ITEM A'] || 'Other',
+                        itemAZh: item.itemAZh || item['产品 A'] || '',
+                        itemB: item.itemB || item.ITEM_B || item.ItemB || item['ITEM B'] || '',
+                        itemBZh: item.itemBZh || item['产品 B'] || '',
+                        description: item.description || item.Description || '',
+                        descriptionZh: item.descriptionZh || '',
+                        noteA: item.noteA || item.NoteA || item['Note A'] || '',
+                        noteACn: item.noteACn || item['备注 A'] || '',
+                        noteB: item.noteB || item.NoteB || item['Note B'] || '',
+                        noteBCn: item.noteBCn || item['备注 B'] || '',
+                        unitPrice: parseFloat(item.unitPrice || item.UnitPrice || item['Selling Price'] || 0),
+                        highEndPrice: parseFloat(item.highEndPrice || item.HighEndPrice || 0),
+                        dealerPrice: parseFloat(item.dealerPrice || item.DealerPrice || 0),
+                        costPrice: parseFloat(item.costPrice || item.CostPrice || 0),
+                        costPrice1: parseFloat(item.costPrice1 || item.CostPrice1 || 0),
+                        adjustPercent: parseFloat(item.adjustPercent || item.AdjustPercent || 0),
+                        designFee: parseFloat(item.designFee || item['Design Fee'] || 0),
+                        installFee: parseFloat(item.installFee || item['Installation Fee'] || 0),
+                        inputDimension: item.inputDimension || '',
+                        algorithm: item.algorithm || 'unit price',
+                        algorithmNotes: item.algorithmNotes || '',
+                        sec1Width: item.sec1Width || '',
+                        sec1Height: item.sec1Height || '',
+                        sec1Depth: item.sec1Depth || '',
+                        sec1Mode: item.sec1Mode || 'none',
+                        wSpecRes: item.wSpecRes || '',
+                        wSpecMode: item.wSpecMode || 'none',
+                        hSpecRes: item.hSpecRes || '',
+                        hSpecMode: item.hSpecMode || 'none',
+                        dSpecRes: item.dSpecRes || '',
+                        dSpecMode: item.dSpecMode || 'none'
+                    };
+                }
+                
+                if (product.itemB) { allProducts.push(product); added++; }
+            });
+            
+            // Clear areaOrder and projectOrders before save to avoid duplicates
+            areaOrder = [];
+            projectOrders = {};
+            
+            saveData(); saveOrderSettings(); filteredProducts = [...allProducts]; renderTable(); renderAreaHierarchy(); updateStats(); closeModal('importModal');
+            showToast(currentLang === 'zh' ? '已导入 ' + added + ' 个产品' : 'Imported ' + added + ' products', 'success');
+        }
+
+        function getSortedExportProducts() {
+            // Sort by: Area order (areaOrder) → Project order from allProducts array → Product name (itemB A-Z)
+            // This ensures exports match the sidebar display order exactly
+            
+            const areaOrderMap = {};
+            areaOrder.forEach((area, idx) => areaOrderMap[area] = idx);
+            
+            // Build project first-occurrence order from allProducts array (current rendering order)
+            const projectFirstIndex = {};
+            allProducts.forEach((p, idx) => {
+                const area = p.area || 'OTHER';
+                const proj = p.itemA || 'Other';
+                const key = area + '::' + proj;
+                if (!(key in projectFirstIndex)) {
+                    projectFirstIndex[key] = idx;
+                }
+            });
+            
+            return [...allProducts].sort((a, b) => {
+                // 1. Sort by Area order (user-defined in sidebar)
+                const areaA = a.area || 'OTHER';
+                const areaB = b.area || 'OTHER';
+                const areaIdxA = areaOrderMap[areaA] !== undefined ? areaOrderMap[areaA] : 999;
+                const areaIdxB = areaOrderMap[areaB] !== undefined ? areaOrderMap[areaB] : 999;
+                
+                if (areaIdxA !== areaIdxB) return areaIdxA - areaIdxB;
+                
+                // 2. Sort by Project order (first occurrence in allProducts array)
+                const projA = a.itemA || 'Other';
+                const projB = b.itemA || 'Other';
+                const keyA = areaA + '::' + projA;
+                const keyB = areaB + '::' + projB;
+                const projIdxA = projectFirstIndex[keyA] !== undefined ? projectFirstIndex[keyA] : 999;
+                const projIdxB = projectFirstIndex[keyB] !== undefined ? projectFirstIndex[keyB] : 999;
+                
+                if (projIdxA !== projIdxB) return projIdxA - projIdxB;
+                
+                // 3. Sort by Product name (itemB) A-Z
+                const nameA = (a.itemB || '').toLowerCase();
+                const nameB = (b.itemB || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
+        }
+        
+        function exportJSON() {
+            saveData(); // Ensure all data is saved before export
+            const sortedProducts = getSortedExportProducts();
+            const exportData = { products: sortedProducts, meta: { total: sortedProducts.length, exported: new Date().toISOString() } };
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'products_' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('JSON exported', 'success');
+        }
+        
+        function saveToLocal() {
+            // Save complete data including all fields
+            const saveData = {
+                products: allProducts,
+                areas: JSON.parse(localStorage.getItem('pm_areas') || '[]'),
+                meta: { 
+                    total: allProducts.length, 
+                    saved: new Date().toISOString(),
+                    version: '2.0'
+                }
+            };
+            localStorage.setItem('pm_products', JSON.stringify(saveData));
+            showToast(currentLang === 'zh' ? '已保存到本地' : 'Saved to local', 'success');
+        }
+        
+        function exportExcel() {
+            saveData(); // Ensure all data is saved before export
+            const sortedProducts = getSortedExportProducts();
+            const ws_data = [
+                ['AREA', '区域', 'ITEM A', '产品 A', 'ITEM B', '产品 B', 'DESCRIPTION ', '产品说明 / 描述', 
+                 'Note A', '备注 A', 'Note B', '备注 B', 
+                 'Selling Price RM Meters', 'High-End Price', 'Dealer Price RM Meters', 'Cost Price RM Meters', 'Cost Price 1', 'Adjust Percent %',
+                 'Design Fee (RM)', 'Installation Fee (RM)',
+                 'Input Dimension (mm)', 'algorithm', '试算说明', 'Algorithm Notes',
+                 'Section 2 Restrictions (D)', 'Section 2 Restrictions (H)', 'Section 2 Restrictions (W)',
+                 'specialMode (D)', 'specialMode (H)', 'specialMode (W)',
+                 'Section 1 Restrictions (D)', 'Section 1 Restrictions (H)', 'Section 1 Restrictions (W)', 'specialMode W/H/D']
+            ];
+            sortedProducts.forEach(p => ws_data.push([
+                p.area || '', p.areaZh || '', p.itemA || '', p.itemAZh || '', 
+                p.itemB || '', p.itemBZh || '', p.description || '', p.descriptionZh || '',
+                p.noteA || '', p.noteACn || '', p.noteB || '', p.noteBCn || '',
+                p.unitPrice || 0, p.highEndPrice || 0, p.dealerPrice || 0, p.costPrice || 0, p.costPrice1 || 0, p.adjustPercent || 0,
+                p.designFee || 0, p.installFee || 0,
+                p.inputDimension || '', p.algorithm || 'unit price', p.algorithmNotes || '', p.algorithmNotes || '',
+                p.dSpecRes || '', p.hSpecRes || '', p.wSpecRes || '',
+                p.dSpecMode || '', p.hSpecMode || '', p.wSpecMode || '',
+                p.sec1Depth || '', p.sec1Height || '', p.sec1Width || '', p.sec1Mode || ''
+            ]));
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Products');
+            XLSX.writeFile(wb, 'products_' + new Date().toISOString().slice(0,10) + '.xlsx');
+            showToast('Excel exported', 'success');
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => toast.className = 'toast', 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
