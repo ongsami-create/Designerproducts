@@ -1134,11 +1134,11 @@
             document.getElementById('editSec1Mode').value = product.sec1Mode || 'return_base';
             // Section 2
             document.getElementById('editWSpecRes').value = product.wSpecRes || '';
-            document.getElementById('editWSpecMode').value = product.wSpecMode || 'none';
+            document.getElementById('editWSpecMode').value = product.wSpecMode || 'return_base';
             document.getElementById('editHSpecRes').value = product.hSpecRes || '';
-            document.getElementById('editHSpecMode').value = product.hSpecMode || 'none';
+            document.getElementById('editHSpecMode').value = product.hSpecMode || 'return_base';
             document.getElementById('editDSpecRes').value = product.dSpecRes || '';
-            document.getElementById('editDSpecMode').value = product.dSpecMode || 'none';
+            document.getElementById('editDSpecMode').value = product.dSpecMode || 'return_base';
             renderProjectCheckboxes(product.itemA);
         }
         
@@ -1400,10 +1400,11 @@
         }
 
         // Helper function to parse special mode from Excel format
+        // Legal enum: 'return_base' | 'plus_150_100' | 'plus_60_50' | 'plus_20_10' | 'by_sqm'
         function parseSpecialMode(val) {
-            if (!val) return 'none';
+            if (val == null || val === '') return 'return_base';
             const v = String(val).toLowerCase().trim();
-            if (v === 'none' || v === '') return 'none';
+            if (v === '') return 'return_base';
             // Check for underscore format first (e.g., plus_150_100, return_base, by_sqm)
             if (v === 'return_base') return 'return_base';
             if (v === 'plus_150_100') return 'plus_150_100';
@@ -1416,15 +1417,18 @@
             if (v.includes('plus_60_50') || v.includes('+60') || v.includes('60/50')) return 'plus_60_50';
             if (v.includes('plus_20_10') || v.includes('+20') || v.includes('20/10')) return 'plus_20_10';
             if (v.includes('by_sqm') || v.includes('sqm') || v.includes('平方米')) return 'by_sqm';
-            if (v.includes('zero')) return 'zero';
-            return 'none';
+            return 'return_base';
         }
         
-        // Helper function to parse price (handle formula like =SUM(M4/0.85))
+        // Helper function to parse price.
+        // Excel 公式 cell (e.g. =SUM(M4/0.85)) 在没 cached value 时 SheetJS 拿不到计算结果, 计数后给用户提示在 Excel 里 F2→Enter 重算再上传
         function parsePrice(val) {
-            if (!val) return 0;
+            if (val == null || val === '') return 0;
             const str = String(val);
-            if (str.startsWith('=')) return 0; // Formulas need Excel to evaluate
+            if (str.startsWith('=')) {
+                window._importFormulaCount = (window._importFormulaCount || 0) + 1;
+                return 0;
+            }
             const num = parseFloat(str.replace(/[^0-9.-]/g, ''));
             return isNaN(num) ? 0 : num;
         }
@@ -1464,7 +1468,7 @@
                         designFee: parsePrice(item['Design Fee (RM)']),
                         installFee: parsePrice(item['Installation Fee (RM)']),
                         inputDimension: item['Input Dimension (mm)'] || '',
-                        algorithm: item['algorithm'] || 'unit price',
+                        algorithm: item['algorithm'] || 'Per Unit',
                         algorithmNotes: item['Algorithm Notes'] || item['试算说明'] || '',
                         // Section 1: Return base price within limit (columns 30-33)
                         sec1Width: item['Sec1 Restrictions (W)'] || '',
@@ -1504,18 +1508,18 @@
                         designFee: parseFloat(item.designFee || item['Design Fee'] || 0),
                         installFee: parseFloat(item.installFee || item['Installation Fee'] || 0),
                         inputDimension: item.inputDimension || '',
-                        algorithm: item.algorithm || 'unit price',
+                        algorithm: item.algorithm || 'Per Unit',
                         algorithmNotes: item.algorithmNotes || '',
                         sec1Width: item.sec1Width || '',
                         sec1Height: item.sec1Height || '',
                         sec1Depth: item.sec1Depth || '',
-                        sec1Mode: item.sec1Mode || 'none',
+                        sec1Mode: item.sec1Mode || 'return_base',
                         wSpecRes: item.wSpecRes || '',
-                        wSpecMode: item.wSpecMode || 'none',
+                        wSpecMode: item.wSpecMode || 'return_base',
                         hSpecRes: item.hSpecRes || '',
-                        hSpecMode: item.hSpecMode || 'none',
+                        hSpecMode: item.hSpecMode || 'return_base',
                         dSpecRes: item.dSpecRes || '',
-                        dSpecMode: item.dSpecMode || 'none'
+                        dSpecMode: item.dSpecMode || 'return_base'
                     };
                 }
                 
@@ -1527,7 +1531,14 @@
             projectOrders = {};
             
             saveData(); saveOrderSettings(); filteredProducts = [...allProducts]; renderTable(); renderAreaHierarchy(); updateStats(); closeModal('importModal');
-            showToast(currentLang === 'zh' ? '已导入 ' + added + ' 个产品' : 'Imported ' + added + ' products', 'success');
+            const formulaCount = window._importFormulaCount || 0;
+            window._importFormulaCount = 0;
+            let msg = currentLang === 'zh' ? '已导入 ' + added + ' 个产品' : 'Imported ' + added + ' products';
+            if (formulaCount > 0) {
+                msg += (currentLang === 'zh' ? '（' + formulaCount + ' 个 Excel 公式 cell 未解析，请在 Excel 里 F2→Enter 后重传）'
+                    : ' (' + formulaCount + ' Excel formula cells skipped — recalc in Excel and re-upload)');
+            }
+            showToast(msg, 'success');
         }
 
         function getSortedExportProducts() {
@@ -1619,7 +1630,7 @@
                 p.noteA || '', p.noteACn || '', p.noteB || '', p.noteBCn || '',
                 p.unitPrice || 0, p.highEndPrice || 0, p.dealerPrice || 0, p.costPrice || 0, p.costPrice1 || 0, p.adjustPercent || 0,
                 p.designFee || 0, p.installFee || 0,
-                p.inputDimension || '', p.algorithm || 'unit price', p.algorithmNotes || '', p.algorithmNotes || '',
+                p.inputDimension || '', p.algorithm || 'Per Unit', p.algorithmNotes || '', p.algorithmNotes || '',
                 p.dSpecRes || '', p.hSpecRes || '', p.wSpecRes || '',
                 p.dSpecMode || '', p.hSpecMode || '', p.wSpecMode || '',
                 p.sec1Depth || '', p.sec1Height || '', p.sec1Width || '', p.sec1Mode || ''
