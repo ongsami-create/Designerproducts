@@ -116,6 +116,31 @@
             transition: all 0.15s;
         }
         .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0 4px; border-top: 1px solid var(--border); margin-top: 10px; }
+        .filter-row select, .filter-row input { padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 7px; font-size: 12px; background: var(--surface-solid); color: var(--text); font-family: inherit; }
+        .filter-row select:focus, .filter-row input:focus { outline: none; border-color: var(--primary); }
+        .filter-row .filter-label { font-size: 11px; color: var(--text-light); margin-right: 2px; }
+        .filter-row .price-input { width: 90px; }
+        .filter-row .filter-clear { padding: 6px 12px; background: transparent; border: 1px solid var(--border-strong); color: var(--text-light); border-radius: 7px; cursor: pointer; font-size: 12px; }
+        .filter-row .filter-clear:hover { background: var(--primary-soft); color: var(--primary); border-color: var(--primary); }
+        .migration-section { padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .migration-section:last-child { border-bottom: none; }
+        .migration-section h4 { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: var(--text); }
+        .migration-section .form-group { margin-bottom: 8px; }
+        .migration-section .form-input { width: 100%; padding: 7px 10px; border: 1px solid var(--border-strong); border-radius: 7px; font-size: 12px; font-family: inherit; background: var(--surface-solid); color: var(--text); }
+        .migration-section .form-input:focus { outline: none; border-color: var(--primary); }
+        .migration-preview { font-size: 11px; color: var(--text-light); margin: 6px 0 8px; min-height: 14px; }
+        .migration-preview.warn { color: var(--warning, #FF9F0A); }
+        .dash-stats { display: flex; gap: 10px; margin: 8px 0 12px; flex-wrap: wrap; }
+        .dash-stats span { font-size: 11px; color: var(--text-light); }
+        .dash-stats b { color: var(--primary); font-size: 13px; }
+        .dash-list { font-size: 11px; color: var(--text-light); line-height: 1.6; max-height: 200px; overflow-y: auto; }
+        .dash-list b { color: var(--text); }
+        .dash-list h5 { font-size: 11px; color: var(--text); margin: 8px 0 4px; font-weight: 600; }
+        .dash-list .dash-area { margin: 4px 0; }
+        .dash-list .dash-area b { color: var(--primary); }
+        .dash-list .dash-proj { padding-left: 12px; color: var(--text-light); }
+        .dash-list .dash-bar { display: inline-block; height: 6px; background: var(--primary); border-radius: 3px; vertical-align: middle; margin-left: 4px; }
         .action-bar { display: flex; justify-content: space-between; align-items: center; }
         .action-left, .action-right { display: flex; gap: 10px; align-items: center; }
         .select-info { color: var(--text-light); font-size: 13px; user-select: none; }
@@ -232,18 +257,55 @@
                     <div id="sortProjectsList"></div>
                 </div>
             </div>
+            <div style="padding:15px; border-top:2px solid #ddd;">
+                <button class="btn btn-outline btn-sm" style="width:100%;" onclick="openMigrationModal()" data-zh="🛠 数据迁移工具" data-en="🛠 Data Migration Tools">🛠 Data Migration Tools</button>
+            </div>
+            <div style="padding:15px; border-top:2px solid #ddd;">
+                <div class="sort-section-title" onclick="toggleDashboard()"><span id="dashToggleIcon">▶</span> <span data-zh="统计" data-en="Dashboard">Dashboard</span></div>
+                <div id="dashboardContent" style="display:none;">
+                    <div class="dash-stats">
+                        <span><b id="dashTotal">0</b> <span data-zh="产品" data-en="products">products</span></span>
+                        <span><b id="dashAreas">0</b> <span data-zh="区域" data-en="areas">areas</span></span>
+                        <span><b id="dashProjects">0</b> <span data-zh="项目" data-en="projects">projects</span></span>
+                    </div>
+                    <h5 data-zh="算法分布" data-en="Algorithm">Algorithm</h5>
+                    <div id="dashAlgo" class="dash-list"></div>
+                    <h5 data-zh="价格区间 (RM)" data-en="Price Range (RM)">Price Range (RM)</h5>
+                    <div id="dashPrice" class="dash-list"></div>
+                    <h5 data-zh="区域 × 项目" data-en="Area × Project">Area × Project</h5>
+                    <div id="dashMatrix" class="dash-list"></div>
+                </div>
+            </div>
         </aside>
 
         <main class="content">
             <div class="search-section">
                 <div class="search-bar">
-                    <input type="text" class="search-input" id="searchInput" placeholder="Search exact product name..." onkeyup="handleSearch(event)">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search by name / description (instant)..." oninput="debouncedSearch()">
                     <button class="btn btn-primary" onclick="performSearch()">Search</button>
+                </div>
+                <div class="filter-row">
+                    <span class="filter-label">Area:</span>
+                    <select id="filterArea" onchange="onFilterAreaChange()"><option value="">All</option></select>
+                    <span class="filter-label">Project:</span>
+                    <select id="filterProject" onchange="performSearch()"><option value="">All</option></select>
+                    <span class="filter-label">Price:</span>
+                    <input type="number" id="filterPriceMin" class="price-input" placeholder="Min" min="0" oninput="debouncedSearch()">
+                    <input type="number" id="filterPriceMax" class="price-input" placeholder="Max" min="0" oninput="debouncedSearch()">
+                    <span class="filter-label">Algo:</span>
+                    <select id="filterAlgorithm" onchange="performSearch()">
+                        <option value="">All</option>
+                        <option value="Per Unit">Per Unit</option>
+                        <option value="Per SQM">Per SQM</option>
+                        <option value="Per LM">Per LM</option>
+                    </select>
+                    <button class="filter-clear" onclick="clearFilters()">Clear</button>
                 </div>
                 <div class="action-bar">
                     <div class="action-left">
                         <label class="select-info"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"> <span data-zh="全选" data-en="Select All">Select All</span></label>
                         <span class="select-info" id="selectedCount">0 selected</span>
+                        <span class="select-info" id="matchInfo"></span>
                     </div>
                     <div class="action-right">
                         <button class="btn btn-primary" onclick="showAddModal()">+ Add</button>
@@ -538,6 +600,52 @@
         </div>
     </div>
 
+    <!-- Data Migration Modal -->
+    <div class="modal-overlay" id="migrationModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-header"><h3 class="modal-title" data-zh="数据迁移工具" data-en="Data Migration Tools">Data Migration Tools</h3><button class="modal-close" onclick="closeModal('migrationModal')">&times;</button></div>
+            <div class="modal-body">
+                <!-- Rename Area -->
+                <div class="migration-section">
+                    <h4 data-zh="重命名区域" data-en="Rename Area">Rename Area</h4>
+                    <div class="form-group">
+                        <select class="form-input" id="renameAreaFrom"></select>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-input" id="renameAreaTo" data-zh-placeholder="新区域名" placeholder="New area name">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="doRenameArea()" data-zh="重命名 (会改所有产品)" data-en="Rename (updates all products)">Rename (updates all products)</button>
+                    <div class="migration-preview" id="renameAreaPreview"></div>
+                </div>
+                <!-- Rename Project -->
+                <div class="migration-section">
+                    <h4 data-zh="重命名项目" data-en="Rename Project">Rename Project</h4>
+                    <div class="form-group">
+                        <select class="form-input" id="renameProjectArea" onchange="populateRenameProjectSelect_()"></select>
+                    </div>
+                    <div class="form-group">
+                        <select class="form-input" id="renameProjectFrom"></select>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" class="form-input" id="renameProjectTo" data-zh-placeholder="新项目名" placeholder="New project name">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="doRenameProject()" data-zh="重命名 (会改所有产品)" data-en="Rename (updates all products)">Rename (updates all products)</button>
+                    <div class="migration-preview" id="renameProjectPreview"></div>
+                </div>
+                <!-- Clean Orphans -->
+                <div class="migration-section">
+                    <h4 data-zh="清理孤立区域/项目" data-en="Clean Orphans">Clean Orphans</h4>
+                    <p style="font-size:12px; color:var(--text-light); margin:0 0 10px;" data-zh="删除没有产品的区域/项目" data-en="Delete areas/projects with no products">Delete areas/projects with no products</p>
+                    <div class="migration-preview" id="orphansPreview"></div>
+                    <button class="btn btn-danger btn-sm" onclick="doCleanOrphans()" data-zh="清理" data-en="Clean">Clean</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('migrationModal')" data-zh="关闭" data-en="Close">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
@@ -555,9 +663,11 @@
             await loadData();
             loadOrderSettings();
             const mig = migrateLegacyEnums_();
+            populateAreaFilter_();
             renderAreaHierarchy();
             renderTable();
             updateStats();
+            updateMatchInfo_();
             if (mig.total > 0) {
                 showToast(currentLang === 'zh'
                     ? '已迁移 ' + mig.total + ' 个旧字段值到合法 enum (' + mig.algorithmCount + ' algorithm, ' + mig.specModeCount + ' spec mode)'
@@ -618,7 +728,12 @@
                 areas: areaOrder,
                 meta: { total: allProducts.length, saved: new Date().toISOString(), version: '2.0' }
             }));
+            hierarchyCache = null;
         }
+
+        // Module-level cache for getAreaHierarchy(), invalidated by saveData / saveOrderSettings
+        let hierarchyCache = null;
+        function invalidateHierarchy_() { hierarchyCache = null; }
 
         function loadOrderSettings() {
             const settings = localStorage.getItem('orderSettings');
@@ -631,10 +746,12 @@
 
         function saveOrderSettings() {
             localStorage.setItem('orderSettings', JSON.stringify({areaOrder, projectOrders}));
+            hierarchyCache = null;
         }
 
         function updateStats() {
             document.getElementById('statsDisplay').textContent = allProducts.length + ' Products';
+            renderDashboard();
         }
 
         function toggleLanguage() {
@@ -646,6 +763,7 @@
         }
 
         function getAreaHierarchy() {
+            if (hierarchyCache) return hierarchyCache;
             const hierarchy = {};
             // First add all areas from allProducts
             allProducts.forEach(p => {
@@ -720,8 +838,18 @@
         }
 
         function toggleAccordion(header) { header.parentElement.classList.toggle('open'); }
-        function filterByArea(area) { currentArea = area; filteredProducts = allProducts.filter(p => p.area === area); document.getElementById('searchInput').value = ''; currentPage = 1; selectedProducts.clear(); renderTable(); updateSelectedCount(); }
-        function filterByProject(area, project) { filteredProducts = allProducts.filter(p => p.area === area && p.itemA === project); document.getElementById('searchInput').value = ''; currentPage = 1; selectedProducts.clear(); renderTable(); updateSelectedCount(); }
+        function filterByArea(area) {
+            document.getElementById('filterArea').value = area || '';
+            onFilterAreaChange();
+            document.getElementById('searchInput').value = '';
+        }
+        function filterByProject(area, project) {
+            document.getElementById('filterArea').value = area || '';
+            onFilterAreaChange();
+            document.getElementById('filterProject').value = project || '';
+            document.getElementById('searchInput').value = '';
+            performSearch();
+        }
 
         function toggleSortSection(type) {
             const section = document.getElementById(type === 'areas' ? 'sortAreasSection' : 'sortProjectsSection');
@@ -801,6 +929,7 @@
             // 只添加区域到areaOrder，不创建默认产品和项目
             if (!areaOrder.includes(name)) areaOrder.push(name);
             saveData(); saveOrderSettings();
+            populateAreaFilter_();
             renderAreaHierarchy(); updateStats(); closeModal('addAreaModal');
             showToast(currentLang === 'zh' ? '区域已添加' : 'Area added', 'success');
         }
@@ -881,12 +1010,297 @@
             openModal('deleteModal');
         }
 
-        function handleSearch(event) { if (event.key === 'Enter') performSearch(); }
+        // Debounced instant search: text inputs trigger performSearch() ~200ms after last keystroke
+        let _searchDebounceTimer = null;
+        function debouncedSearch() {
+            if (_searchDebounceTimer) clearTimeout(_searchDebounceTimer);
+            _searchDebounceTimer = setTimeout(performSearch, 200);
+        }
+
+        // Multi-dimensional filter: search query (fuzzy across name/desc) + area + project + price range + algorithm
         function performSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) filteredProducts = currentArea ? allProducts.filter(p => p.area === currentArea) : [...allProducts];
-            else filteredProducts = allProducts.filter(p => p.itemB?.toLowerCase() === query.toLowerCase() || p.itemBZh?.toLowerCase() === query.toLowerCase());
-            currentPage = 1; selectedProducts.clear(); renderTable(); updateSelectedCount();
+            if (_searchDebounceTimer) { clearTimeout(_searchDebounceTimer); _searchDebounceTimer = null; }
+            const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            const fArea = document.getElementById('filterArea').value;
+            const fProj = document.getElementById('filterProject').value;
+            const fMinRaw = document.getElementById('filterPriceMin').value;
+            const fMaxRaw = document.getElementById('filterPriceMax').value;
+            const fMin = fMinRaw === '' ? -Infinity : parseFloat(fMinRaw);
+            const fMax = fMaxRaw === '' ? Infinity : parseFloat(fMaxRaw);
+            const fAlg = document.getElementById('filterAlgorithm').value;
+
+            filteredProducts = allProducts.filter(p => {
+                if (fArea && p.area !== fArea) return false;
+                if (fProj && p.itemA !== fProj) return false;
+                if (fAlg && p.algorithm !== fAlg) return false;
+                const price = p.unitPrice || 0;
+                if (price < fMin) return false;
+                if (price > fMax) return false;
+                if (query) {
+                    const hay = ((p.itemB || '') + ' ' + (p.itemBZh || '') + ' ' + (p.description || '') + ' ' + (p.descriptionZh || '')).toLowerCase();
+                    if (!hay.includes(query)) return false;
+                }
+                return true;
+            });
+            currentPage = 1;
+            selectedProducts.clear();
+            updateMatchInfo_();
+            renderTable();
+            updateSelectedCount();
+        }
+
+        function updateMatchInfo_() {
+            const el = document.getElementById('matchInfo');
+            if (!el) return;
+            const total = allProducts.length;
+            const matched = filteredProducts.length;
+            if (matched === total) el.textContent = '';
+            else el.textContent = (currentLang === 'zh' ? '· 匹配 ' + matched + ' / ' + total : '· ' + matched + ' / ' + total + ' matched');
+        }
+
+        function onFilterAreaChange() {
+            populateProjectFilter_();
+            performSearch();
+        }
+
+        function populateProjectFilter_() {
+            const area = document.getElementById('filterArea').value;
+            const sel = document.getElementById('filterProject');
+            const prev = sel.value;
+            const hierarchy = getAreaHierarchy();
+            const projects = area ? Object.keys(hierarchy[area]?.projects || {}).sort() : [];
+            sel.innerHTML = '<option value="">All</option>' + projects.map(p => '<option value="' + p + '">' + p + '</option>').join('');
+            if (projects.includes(prev)) sel.value = prev;
+        }
+
+        function populateAreaFilter_() {
+            const hierarchy = getAreaHierarchy();
+            const areas = Object.keys(hierarchy).sort();
+            const sel = document.getElementById('filterArea');
+            sel.innerHTML = '<option value="">All</option>' + areas.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterArea').value = '';
+            document.getElementById('filterProject').innerHTML = '<option value="">All</option>';
+            document.getElementById('filterPriceMin').value = '';
+            document.getElementById('filterPriceMax').value = '';
+            document.getElementById('filterAlgorithm').value = '';
+            performSearch();
+        }
+
+        // =============== DATA MIGRATION TOOLS ===============
+        function openMigrationModal() {
+            populateRenameAreaSelect_();
+            populateRenameProjectAreaSelect_();
+            scanOrphans_();
+            document.getElementById('renameAreaTo').value = '';
+            document.getElementById('renameProjectTo').value = '';
+            document.getElementById('renameAreaPreview').textContent = '';
+            document.getElementById('renameProjectPreview').textContent = '';
+            openModal('migrationModal');
+        }
+
+        function populateRenameAreaSelect_() {
+            const hierarchy = getAreaHierarchy();
+            const areas = Object.keys(hierarchy).sort();
+            const sel = document.getElementById('renameAreaFrom');
+            sel.innerHTML = '<option value="">-- Select Area --</option>' + areas.map(a => '<option value="' + a + '">' + a + ' (' + countProductsIn_(a) + ')</option>').join('');
+        }
+
+        function populateRenameProjectAreaSelect_() {
+            const hierarchy = getAreaHierarchy();
+            const areas = Object.keys(hierarchy).sort();
+            const sel = document.getElementById('renameProjectArea');
+            sel.innerHTML = '<option value="">-- Select Area --</option>' + areas.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+            sel.value = '';
+            populateRenameProjectSelect_();
+        }
+
+        function populateRenameProjectSelect_() {
+            const area = document.getElementById('renameProjectArea').value;
+            const sel = document.getElementById('renameProjectFrom');
+            if (!area) { sel.innerHTML = '<option value="">-- Select Area first --</option>'; return; }
+            const hierarchy = getAreaHierarchy();
+            const projects = Object.keys(hierarchy[area]?.projects || {}).sort();
+            sel.innerHTML = '<option value="">-- Select Project --</option>' + projects.map(p => '<option value="' + p + '">' + p + ' (' + countProductsIn_(area, p) + ')</option>').join('');
+        }
+
+        function countProductsIn_(area, project) {
+            if (project) return allProducts.filter(p => p.area === area && p.itemA === project).length;
+            return allProducts.filter(p => p.area === area).length;
+        }
+
+        function doRenameArea() {
+            const from = document.getElementById('renameAreaFrom').value;
+            const to = document.getElementById('renameAreaTo').value.trim();
+            const previewEl = document.getElementById('renameAreaPreview');
+            if (!from) { previewEl.className = 'migration-preview warn'; previewEl.textContent = '⚠ ' + (currentLang === 'zh' ? '请选源区域' : 'Select source area'); return; }
+            if (!to) { previewEl.className = 'migration-preview warn'; previewEl.textContent = '⚠ ' + (currentLang === 'zh' ? '请输入新名' : 'Enter new name'); return; }
+            if (from === to) { previewEl.className = 'migration-preview warn'; previewEl.textContent = '⚠ ' + (currentLang === 'zh' ? '新名跟旧名一样' : 'New name same as old'); return; }
+            if (!confirm((currentLang === 'zh' ? '确定把 "' + from + '" 改名为 "' + to + '"？' : 'Rename "' + from + '" to "' + to + '"?') + '\n' + (currentLang === 'zh' ? '这会改所有产品 + areaOrder + projectOrders' : 'This updates all products + areaOrder + projectOrders'))) return;
+
+            let count = 0;
+            allProducts.forEach(p => { if (p.area === from) { p.area = to; count++; } });
+            areaOrder = areaOrder.map(a => a === from ? to : a);
+            if (projectOrders[from]) {
+                if (projectOrders[to]) {
+                    // merge projects
+                    projectOrders[to] = [...new Set([...projectOrders[to], ...projectOrders[from]])];
+                } else {
+                    projectOrders[to] = projectOrders[from];
+                }
+                delete projectOrders[from];
+            }
+            saveData(); saveOrderSettings();
+            populateAreaFilter_();
+            renderAreaHierarchy(); updateStats();
+            populateRenameAreaSelect_();
+            populateRenameProjectAreaSelect_();
+            document.getElementById('renameAreaTo').value = '';
+            previewEl.className = 'migration-preview';
+            previewEl.textContent = '✓ ' + (currentLang === 'zh' ? '已改 ' + count + ' 个产品' : 'Renamed, updated ' + count + ' products');
+            showToast((currentLang === 'zh' ? '已重命名区域' : 'Area renamed'), 'success');
+        }
+
+        function doRenameProject() {
+            const area = document.getElementById('renameProjectArea').value;
+            const from = document.getElementById('renameProjectFrom').value;
+            const to = document.getElementById('renameProjectTo').value.trim();
+            const previewEl = document.getElementById('renameProjectPreview');
+            if (!area || !from) { previewEl.className = 'migration-preview warn'; previewEl.textContent = '⚠ ' + (currentLang === 'zh' ? '请选 area + project' : 'Select area + project'); return; }
+            if (!to) { previewEl.className = 'migration-preview warn'; previewEl.textContent = '⚠ ' + (currentLang === 'zh' ? '请输入新名' : 'Enter new name'); return; }
+            if (from === to) { previewEl.className = 'migration-preview warn'; previewEl.textContent = '⚠ ' + (currentLang === 'zh' ? '新名跟旧名一样' : 'New name same as old'); return; }
+            if (!confirm((currentLang === 'zh' ? '确定把 "' + area + ' / ' + from + '" 改名为 "' + to + '"？' : 'Rename "' + area + ' / ' + from + '" to "' + to + '"?') + '\n' + (currentLang === 'zh' ? '这会改所有匹配产品' : 'This updates all matching products'))) return;
+
+            let count = 0;
+            allProducts.forEach(p => { if (p.area === area && p.itemA === from) { p.itemA = to; count++; } });
+            if (projectOrders[area]) projectOrders[area] = projectOrders[area].map(p => p === from ? to : p);
+            saveData(); saveOrderSettings();
+            renderAreaHierarchy(); updateStats();
+            populateRenameProjectSelect_();
+            document.getElementById('renameProjectTo').value = '';
+            previewEl.className = 'migration-preview';
+            previewEl.textContent = '✓ ' + (currentLang === 'zh' ? '已改 ' + count + ' 个产品' : 'Renamed, updated ' + count + ' products');
+            showToast((currentLang === 'zh' ? '已重命名项目' : 'Project renamed'), 'success');
+        }
+
+        function scanOrphans_() {
+            const hierarchy = getAreaHierarchy();
+            const orphanAreas = areaOrder.filter(a => !(a in hierarchy) || Object.keys(hierarchy[a].projects).length === 0 && !allProducts.some(p => p.area === a));
+            const orphanProjects = [];
+            Object.keys(projectOrders).forEach(a => {
+                if (!(a in hierarchy)) return;
+                projectOrders[a].forEach(p => {
+                    if (!(p in hierarchy[a].projects) && !allProducts.some(pr => pr.area === a && pr.itemA === p)) {
+                        orphanProjects.push(a + ' / ' + p);
+                    }
+                });
+            });
+            const el = document.getElementById('orphansPreview');
+            el.className = 'migration-preview';
+            const parts = [];
+            if (orphanAreas.length > 0) parts.push((currentLang === 'zh' ? '区域: ' : 'Areas: ') + orphanAreas.join(', '));
+            if (orphanProjects.length > 0) parts.push((currentLang === 'zh' ? '项目: ' : 'Projects: ') + orphanProjects.join(', '));
+            if (parts.length === 0) el.textContent = '✓ ' + (currentLang === 'zh' ? '无孤立项' : 'No orphans');
+            else el.textContent = parts.join('  |  ');
+        }
+
+        function doCleanOrphans() {
+            const hierarchy = getAreaHierarchy();
+            let areaDel = 0, projDel = 0;
+            const newAreaOrder = areaOrder.filter(a => {
+                const hasProducts = allProducts.some(p => p.area === a);
+                if (!hasProducts) { areaDel++; return false; }
+                return true;
+            });
+            areaOrder = newAreaOrder;
+            const newProjectOrders = {};
+            Object.keys(projectOrders).forEach(a => {
+                const kept = projectOrders[a].filter(p => {
+                    const hasProducts = allProducts.some(pr => pr.area === a && pr.itemA === p);
+                    if (!hasProducts) { projDel++; return false; }
+                    return true;
+                });
+                if (kept.length > 0) newProjectOrders[a] = kept;
+            });
+            projectOrders = newProjectOrders;
+            saveOrderSettings();
+            renderAreaHierarchy();
+            populateAreaFilter_();
+            scanOrphans_();
+            renderDashboard();
+            showToast((currentLang === 'zh' ? '清理了 ' + areaDel + ' 区域 + ' + projDel + ' 项目' : 'Cleaned ' + areaDel + ' areas + ' + projDel + ' projects'), 'success');
+        }
+
+        // =============== DASHBOARD ===============
+        function toggleDashboard() {
+            const el = document.getElementById('dashboardContent');
+            const icon = document.getElementById('dashToggleIcon');
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                icon.textContent = '▼';
+                renderDashboard();
+            } else {
+                el.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
+        function renderDashboard() {
+            const total = allProducts.length;
+            const areaSet = new Set();
+            const projSet = new Set();
+            const algoCount = { 'Per Unit': 0, 'Per SQM': 0, 'Per LM': 0 };
+            const algoOther = [];
+            const priceBuckets = [
+                { label: '< 100', min: 0, max: 100, count: 0 },
+                { label: '100 - 300', min: 100, max: 300, count: 0 },
+                { label: '300 - 500', min: 300, max: 500, count: 0 },
+                { label: '500 - 1000', min: 500, max: 1000, count: 0 },
+                { label: '> 1000', min: 1000, max: Infinity, count: 0 }
+            ];
+            const matrix = {};
+
+            allProducts.forEach(p => {
+                const a = p.area || 'OTHER';
+                const proj = p.itemA || 'Other';
+                areaSet.add(a);
+                projSet.add(a + '::' + proj);
+                if (p.algorithm in algoCount) algoCount[p.algorithm]++;
+                else if (p.algorithm) algoOther.push(p.algorithm);
+                const price = p.unitPrice || 0;
+                priceBuckets.forEach(b => { if (price >= b.min && price < b.max) b.count++; });
+                if (!matrix[a]) matrix[a] = {};
+                matrix[a][proj] = (matrix[a][proj] || 0) + 1;
+            });
+
+            document.getElementById('dashTotal').textContent = total;
+            document.getElementById('dashAreas').textContent = areaSet.size;
+            document.getElementById('dashProjects').textContent = projSet.size;
+
+            const maxAlgo = Math.max(1, ...Object.values(algoCount));
+            const algoHtml = Object.keys(algoCount).map(k => {
+                const pct = (algoCount[k] / total * 100).toFixed(0);
+                return '<div>' + k + ': <b>' + algoCount[k] + '</b> <span class="dash-bar" style="width:' + (algoCount[k] / maxAlgo * 50) + 'px;"></span> <small>(' + pct + '%)</small></div>';
+            }).join('') + (algoOther.length > 0 ? '<div><i>' + algoOther.length + ' 其他 algorithm 值</i></div>' : '');
+            document.getElementById('dashAlgo').innerHTML = algoHtml || '<i>No data</i>';
+
+            const maxPrice = Math.max(1, ...priceBuckets.map(b => b.count));
+            const priceHtml = priceBuckets.map(b => {
+                const pct = (b.count / total * 100).toFixed(0);
+                return '<div>' + b.label + ': <b>' + b.count + '</b> <span class="dash-bar" style="width:' + (b.count / maxPrice * 50) + 'px;"></span> <small>(' + pct + '%)</small></div>';
+            }).join('');
+            document.getElementById('dashPrice').innerHTML = priceHtml;
+
+            const matrixHtml = Object.keys(matrix).sort().map(a => {
+                const projects = Object.keys(matrix[a]).sort();
+                return '<div class="dash-area"><b>' + a + '</b> (' + projects.reduce((s, p) => s + matrix[a][p], 0) + ')' +
+                    projects.map(p => '<div class="dash-proj">· ' + p + ': ' + matrix[a][p] + '</div>').join('') +
+                    '</div>';
+            }).join('');
+            document.getElementById('dashMatrix').innerHTML = matrixHtml || '<i>No data</i>';
         }
 
         function toggleSelectAll() {
@@ -1272,6 +1686,7 @@
                     areaOrder = areaOrder.filter(a => a !== pending.name);
                     delete projectOrders[pending.name];
                     saveOrderSettings();
+                    populateAreaFilter_();
                     renderAreaHierarchy(); updateStats();
                     showToast(currentLang === 'zh' ? '区域已删除' : 'Area deleted', 'success');
                 } else if (pending.type === 'project') {
@@ -1559,7 +1974,7 @@
             areaOrder = [];
             projectOrders = {};
             
-            saveData(); saveOrderSettings(); filteredProducts = [...allProducts]; renderTable(); renderAreaHierarchy(); updateStats(); closeModal('importModal');
+            saveData(); saveOrderSettings(); filteredProducts = [...allProducts]; populateAreaFilter_(); performSearch(); renderTable(); renderAreaHierarchy(); updateStats(); closeModal('importModal');
             const formulaCount = window._importFormulaCount || 0;
             window._importFormulaCount = 0;
             let msg = currentLang === 'zh' ? '已导入 ' + added + ' 个产品' : 'Imported ' + added + ' products';
