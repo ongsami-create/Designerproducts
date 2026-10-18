@@ -554,9 +554,38 @@
         async function init() {
             await loadData();
             loadOrderSettings();
+            const mig = migrateLegacyEnums_();
             renderAreaHierarchy();
             renderTable();
             updateStats();
+            if (mig.total > 0) {
+                showToast(currentLang === 'zh'
+                    ? '已迁移 ' + mig.total + ' 个旧字段值到合法 enum (' + mig.algorithmCount + ' algorithm, ' + mig.specModeCount + ' spec mode)'
+                    : 'Migrated ' + mig.total + ' legacy enum values (' + mig.algorithmCount + ' algorithm, ' + mig.specModeCount + ' spec mode)', 'success');
+            }
+        }
+
+        // One-shot migration: Phase 1 bug-fix 前 import 进来的旧 product 字段值不在合法 enum 里
+        // (e.g. algorithm='unit price', sec1Mode='none'), UI select 显示空白. 这里规范成合法值.
+        function migrateLegacyEnums_() {
+            const VALID_ALG = ['Per Unit', 'Per SQM', 'Per LM'];
+            const VALID_SPEC = ['return_base', 'plus_150_100', 'plus_60_50', 'plus_20_10', 'by_sqm'];
+            const SPEC_KEYS = ['sec1Mode', 'wSpecMode', 'hSpecMode', 'dSpecMode'];
+            let algorithmCount = 0, specModeCount = 0;
+            allProducts.forEach(p => {
+                if (p.algorithm && !VALID_ALG.includes(p.algorithm)) {
+                    p.algorithm = 'Per Unit';
+                    algorithmCount++;
+                }
+                SPEC_KEYS.forEach(k => {
+                    if (p[k] && !VALID_SPEC.includes(p[k])) {
+                        p[k] = 'return_base';
+                        specModeCount++;
+                    }
+                });
+            });
+            if (algorithmCount + specModeCount > 0) saveData();
+            return { algorithmCount, specModeCount, total: algorithmCount + specModeCount };
         }
 
         async function loadData() {
